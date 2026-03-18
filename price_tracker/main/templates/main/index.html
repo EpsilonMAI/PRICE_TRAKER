@@ -1,12 +1,128 @@
+{% load static %}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Main</title>
+    <title>Price Tracker - Отслеживание цен на товары</title>
+    <link rel="stylesheet" href="{% static 'main/css/index.css' %}">
 </head>
 <body>
-    <h1>Main page</h1>
-    <p>price seller</p>
+    <header>
+        <nav>
+            <div class="logo">
+                <span>📊</span>
+                <span>Price Tracker</span>
+            </div>
+            <div class="nav-buttons">
+                {% if user.is_authenticated %}
+                    <a href="/profile/" class="btn btn-secondary">Профиль</a>
+                    <form method="post" action="{% url 'logout' %}" class="logout-form">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-primary">Выход</button>
+                    </form>
+                {% else %}
+                    <a href="/login/" class="btn btn-secondary">Вход</a>
+                    <a href="/register/" class="btn btn-primary">Регистрация</a>
+                {% endif %}
+            </div>
+        </nav>
+    </header>
+
+    <section class="hero">
+        <div class="hero-content">
+            <h1>Отслеживайте цены. Экономьте деньги.</h1>
+            <p>Следите за ценами на любимые товары и покупайте в самый выгодный момент. Получайте уведомления о снижении цен автоматически.</p>
+            <div class="hero-buttons">
+                <a href="/register/" class="btn btn-primary btn-large">Начать бесплатно</a>
+                <a href="#about" class="btn btn-secondary btn-large">Узнать больше</a>
+            </div>
+        </div>
+    </section>
+
+    <section class="features">
+        <div class="features-container">
+            <h2 class="section-title">Преимущества нашего сервиса</h2>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">🔔</div>
+                    <h3>Умные уведомления</h3>
+                    <p>Получайте мгновенные оповещения о снижении цен на отслеживаемые товары прямо на почту или в мобильное приложение.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">📈</div>
+                    <h3>История изменений</h3>
+                    <p>Смотрите полную историю изменения цен в удобных графиках и принимайте обоснованные решения о покупке.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">⚡</div>
+                    <h3>Быстрое добавление</h3>
+                    <p>Добавляйте товары для отслеживания одним кликом. Поддержка популярных интернет-магазинов и маркетплейсов.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">💰</div>
+                    <h3>Экономия бюджета</h3>
+                    <p>В среднем наши пользователи экономят до 30% на покупках, дожидаясь лучших предложений и акций.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">🔒</div>
+                    <h3>Безопасность данных</h3>
+                    <p>Ваши данные надежно защищены. Мы не передаем информацию третьим лицам и используем современное шифрование.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">🌐</div>
+                    <h3>Много магазинов</h3>
+                    <p>Отслеживайте товары из различных интернет-магазинов в одном месте. Сравнивайте цены и находите лучшие предложения.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="stats">
+        <div class="stats-container">
+            <div class="stat-item">
+                <h3>10K+</h3>
+                <p>Активных пользователей</p>
+            </div>
+            <div class="stat-item">
+                <h3>50K+</h3>
+                <p>Отслеживаемых товаров</p>
+            </div>
+            <div class="stat-item">
+                <h3>30%</h3>
+                <p>Средняя экономия</p>
+            </div>
+            <div class="stat-item">
+                <h3>24/7</h3>
+                <p>Мониторинг цен</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="about" id="about">
+        <div class="about-container">
+            <h2 class="section-title">О нашем проекте</h2>
+            <div class="about-content">
+                <div class="about-text">
+                    <h2>Делаем онлайн-шопинг выгоднее</h2>
+                    <p>Price Tracker — это современный сервис для отслеживания цен на товары в интернет-магазинах. Мы помогаем нашим пользователям совершать покупки в самый выгодный момент.</p>
+                    <p>Наша команда разработала интеллектуальную систему мониторинга, которая автоматически отслеживает изменения цен 24/7 и мгновенно уведомляет вас о скидках и акциях.</p>
+                    <p>Присоединяйтесь к тысячам пользователей, которые уже экономят свои деньги вместе с нами!</p>
+                </div>
+                <div class="about-image">
+                    🛒
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <p>&copy; 2026 Price Tracker. Все права защищены.</p>
+    </footer>
 </body>
 </html>
