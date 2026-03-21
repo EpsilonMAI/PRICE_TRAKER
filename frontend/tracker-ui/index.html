@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PriceTracker</title>
+</head>
+<body class="bg-gray-50 font-sans antialiased">
+
+    <nav class="bg-white border-b border-gray-200 px-4 py-2.5">
+        <div class="flex flex-wrap justify-between items-center mx-auto max-w-screen-xl">
+            <span class="self-center text-xl font-semibold whitespace-nowrap">PriceTracker</span>
+            <button class="text-white bg-blue-700 hover:bg-blue-800 font-medium rounded-lg text-sm px-5 py-2.5">
+                Добавить товар
+            </button>
+        </div>
+    </nav>
+
+    <main class="p-8 max-w-screen-xl mx-auto" x-data="{ 
+        products: [],
+        async loadProducts() {
+            // Имитация запроса к API (в будущем к Django REST Framework)
+            const res = await fetch('/db.json');
+            const data = await res.json();
+            this.products = data.products;
+        }
+    }" x-init="loadProducts()">
+        
+        <h1 class="text-3xl font-bold mb-8 text-gray-900">Мои товары</h1>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <template x-for="product in products" :key="product.id">
+                <div class="bg-white border border-gray-200 rounded-lg shadow-sm p-5 transition hover:shadow-md">
+                    <div class="flex justify-between items-start mb-2">
+                        <h5 class="text-lg font-bold text-gray-900" x-text="product.name"></h5>
+                        <span class="text-xs font-medium px-2 py-0.5 rounded-full" 
+                              :class="product.status === 'In Stock' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'"
+                              x-text="product.status"></span>
+                    </div>
+                    <p class="text-sm text-gray-500 mb-4" x-text="product.shop"></p>
+                    
+                    <div class="flex items-baseline mb-4">
+                        <span class="text-4xl font-extrabold text-gray-900" x-text="product.current_price + ' ₽'"></span>
+                        <span class="text-sm text-gray-400 line-through ml-2" x-text="product.old_price + ' ₽'"></span>
+                    </div>
+
+                    <p class="text-xs text-gray-400 mb-4" x-text="'Обновлено: ' + product.last_update"></p>
+
+                    <button class="w-full text-blue-700 border border-blue-700 hover:bg-blue-700 hover:text-white font-medium rounded-lg text-sm px-5 py-2.5 transition">
+                        Смотреть график
+                    </button>
+                </div>
+            </template>
+        </div>
+    </main>
+
+    <script type="module" src="/src/main.js"></script>
+</body>
+</html>
