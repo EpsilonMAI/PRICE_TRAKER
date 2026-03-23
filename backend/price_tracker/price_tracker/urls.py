@@ -17,10 +17,12 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 from items.views import ProductsAPIList, ProductsAPIUpdate, ProductsAPICreate
+from tracking.views import *
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/products/', ProductsAPIList.as_view()),
     path('api/products/<int:pk>/', ProductsAPIUpdate.as_view()),
     path('api/products/create/', ProductsAPICreate.as_view()),
+    path('api/detailedprod/', TrackingItemsAPIList.as_view()),
 ]

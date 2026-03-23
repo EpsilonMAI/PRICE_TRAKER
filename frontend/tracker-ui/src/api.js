@@ -1,10 +1,10 @@
 // API конфигурация для подключения к Django backend
-const API_BASE_URL = 'http://127.0.0.1:8000/api/products/';
+const API_BASE_URL = 'http://127.0.0.1:8000/api';
 
 export const api = {
   // Получить все продукты
   async getProducts() {
-    const response = await fetch(`${API_BASE_URL}/products/`);
+    const response = await fetch(`${API_BASE_URL}/detailedprod/`);
     if (!response.ok) throw new Error('Failed to fetch products');
     return response.json();
   },
@@ -18,17 +18,17 @@ export const api = {
 //   },
 
   // Создать продукт
-  async createProduct(data) {
-    const response = await fetch(`${API_BASE_URL}/products/create`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(data),
-    });
-    if (!response.ok) throw new Error('Failed to create product');
-    return response.json();
-  },
+  // async createProduct(data) {
+  //   const response = await fetch(`${API_BASE_URL}/products/create`, {
+  //     method: 'POST',
+  //     headers: {
+  //       'Content-Type': 'application/json',
+  //     },
+  //     body: JSON.stringify(data),
+  //   });
+  //   if (!response.ok) throw new Error('Failed to create product');
+  //   return response.json();
+  // },
 
 //   // Регистрация
 //   async register(userData) {

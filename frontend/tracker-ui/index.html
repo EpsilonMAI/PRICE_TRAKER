@@ -16,24 +16,7 @@
         </div>
     </nav>
 
-    <main class="p-8 max-w-screen-xl mx-auto" x-data="{ 
-        products: [],
-        loading: true,
-        error: null,
-        async loadProducts() {
-            try {
-                this.loading = true;
-                const response = await fetch('http://127.0.0.1:8000/api/products/');
-                if (!response.ok) throw new Error('Ошибка загрузки товаров');
-                this.products = await response.json();
-            } catch (err) {
-                this.error = err.message;
-                console.error('Ошибка:', err);
-            } finally {
-                this.loading = false;
-            }
-        }
-    }" x-init="loadProducts()">
+    <main class="p-8 max-w-screen-xl mx-auto" x-data="trackingApp()" x-init="loadProducts()">
         
         <h1 class="text-3xl font-bold mb-8 text-gray-900">Мои товары</h1>
 
@@ -52,12 +35,20 @@
             <template x-for="product in products" :key="product.id">
                 <div class="bg-white border border-gray-200 rounded-lg shadow-sm p-5 transition hover:shadow-md">
                     <div class="flex justify-between items-start mb-2">
-                        <h5 class="text-lg font-bold text-gray-900" x-text="product.name"></h5>
+                        <h5 class="text-lg font-bold text-gray-900" x-text="product.product_name"></h5>
                         <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-blue-100 text-blue-800"
-                              x-text="product.brand"></span>
+                              x-text="product.store_name"></span>
                     </div>
-                    <p class="text-sm text-gray-500 mb-4" x-text="product.category_name || 'Без категории'"></p>
-                    <p class="text-xs text-gray-400 mb-4" x-text="product.description"></p>
+                    <p class="text-sm text-gray-500 mb-4" x-text="product.custom_name || product.product_name"></p>
+                    
+                    <div class="flex items-baseline mb-4" x-show="product.current_price">
+                        <span class="text-4xl font-extrabold text-gray-900" x-text="product.current_price + ' ₽'"></span>
+                        <span class="text-sm text-gray-400 line-through ml-2" x-show="product.last_old_price" 
+                              x-text="product.last_old_price + ' ₽'"></span>
+                    </div>
+                    
+                    <p class="text-xs text-gray-400 mb-4" x-show="product.price_updated_at" 
+                       x-text="'Обновлено: ' + new Date(product.price_updated_at).toLocaleString('ru-RU')"></p>
                 </div>
             </template>
         </div>
