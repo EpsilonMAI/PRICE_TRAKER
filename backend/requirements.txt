@@ -1,0 +1,18 @@
+# Core
+Django==6.0.3
+
+# REST API
+djangorestframework==3.17.0
+djangorestframework-simplejwt==5.5.1
+
+# Database
+psycopg2-binary==2.9.11
+
+# CORS
+django-cors-headers==4.9.0
+
+# Media files
+pillow==12.1.1
+
+# Environment variables
+python-dotenv==1.2.2

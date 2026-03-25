@@ -1,8 +1,23 @@
+"""Модели для управления интернет-магазинами."""
+from typing import Optional
+from decimal import Decimal
+
 from django.db import models
 
 
 class Stores(models.Model):
-    """Магазины для отслеживания цен"""
+    """Модель интернет-магазинов для парсинга цен.
+    
+    Attributes:
+        name: Название магазина
+        base_url: Базовый URL сайта магазина
+        logo: Логотип магазина
+        rating: Рейтинг магазина (от 0.0 до 5.0)
+        is_active: Активен ли магазин для отслеживания
+        parser_enabled: Включен ли парсер для этого магазина
+        created_at: Дата добавления магазина
+        updated_at: Дата последнего обновления
+    """
     name = models.CharField(max_length=150, unique=True)
     base_url = models.URLField(max_length=500)
     logo = models.ImageField(upload_to='stores/logos/', blank=True, null=True)
@@ -17,6 +32,11 @@ class Stores(models.Model):
         verbose_name_plural = "Stores"
         ordering = ['name']
 
-    def __str__(self):
+    def __str__(self) -> str:
+        """Строковое представление магазина.
+        
+        Returns:
+            str: Название магазина
+        """
         return self.name
 

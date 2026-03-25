@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Профиль - PriceTracker</title>
+</head>
+<body class="bg-gray-50 font-sans antialiased" x-data="profileApp()" x-init="loadProfile()">
+
+    <nav class="bg-white border-b border-gray-200 px-4 py-2.5">
+        <div class="flex flex-wrap justify-between items-center mx-auto max-w-screen-xl">
+            <a href="/" class="self-center text-xl font-semibold whitespace-nowrap">PriceTracker</a>
+            <div class="flex items-center space-x-4">
+                <a href="/" class="text-gray-700 hover:text-blue-700">Мои товары</a>
+                <button @click="logout" class="text-red-600 hover:text-red-700 font-medium">Выйти</button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="p-8 max-w-4xl mx-auto">
+        
+        <h1 class="text-3xl font-bold mb-8 text-gray-900">Мой профиль</h1>
+
+        <!-- Загрузка -->
+        <div x-show="loading" class="text-center py-8">
+            <div class="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent"></div>
+            <p class="mt-2 text-gray-600">Загрузка...</p>
+        </div>
+
+        <!-- Ошибка -->
+        <div x-show="error" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+            <p x-text="error"></p>
+        </div>
+
+        <div x-show="!loading && !error" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Информация о пользователе -->
+            <div class="bg-white shadow-md rounded-lg p-6">
+                <h2 class="text-xl font-bold mb-4 text-gray-900">Информация</h2>
+                
+                <div class="space-y-3">
+                    <div>
+                        <p class="text-sm text-gray-500">Имя пользователя</p>
+                        <p class="text-lg font-medium text-gray-900" x-text="user.username"></p>
+                    </div>
+                    
+                    <div>
+                        <p class="text-sm text-gray-500">Email</p>
+                        <p class="text-lg font-medium text-gray-900" x-text="user.email"></p>
+                    </div>
+                    
+                    <div>
+                        <p class="text-sm text-gray-500">Дата регистрации</p>
+                        <p class="text-lg font-medium text-gray-900" x-text="formatDate(user.date_joined)"></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Статистика -->
+            <div class="bg-white shadow-md rounded-lg p-6">
+                <h2 class="text-xl font-bold mb-4 text-gray-900">Статистика</h2>
+                
+                <div class="space-y-4">
+                    <div class="flex justify-between items-center p-3 bg-blue-50 rounded">
+                        <span class="text-gray-700">Отслеживаемых товаров</span>
+                        <span class="text-2xl font-bold text-blue-700" x-text="stats.tracking_count || 0"></span>
+                    </div>
+                    
+                    <div class="flex justify-between items-center p-3 bg-green-50 rounded">
+                        <span class="text-gray-700">Активных отслеживаний</span>
+                        <span class="text-2xl font-bold text-green-700" x-text="stats.active_count || 0"></span>
+                    </div>
+                    
+                    <div class="flex justify-between items-center p-3 bg-purple-50 rounded">
+                        <span class="text-gray-700">Общая экономия</span>
+                        <span class="text-2xl font-bold text-purple-700" x-text="(stats.total_saved || 0) + ' ₽'"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Настройки уведомлений -->
+            <div class="bg-white shadow-md rounded-lg p-6 md:col-span-2">
+                <h2 class="text-xl font-bold mb-4 text-gray-900">Настройки уведомлений</h2>
+                
+                <div class="space-y-3">
+                    <label class="flex items-center space-x-3">
+                        <input type="checkbox" class="w-5 h-5 text-blue-600 rounded" checked>
+                        <span class="text-gray-700">Email-уведомления о снижении цен</span>
+                    </label>
+                    
+                    <label class="flex items-center space-x-3">
+                        <input type="checkbox" class="w-5 h-5 text-blue-600 rounded" checked>
+                        <span class="text-gray-700">Уведомления о появлении товара в наличии</span>
+                    </label>
+                    
+                    <label class="flex items-center space-x-3">
+                        <input type="checkbox" class="w-5 h-5 text-blue-600 rounded">
+                        <span class="text-gray-700">Еженедельная сводка по ценам</span>
+                    </label>
+                </div>
+                
+                <button class="mt-4 bg-blue-700 hover:bg-blue-800 text-white font-medium py-2 px-4 rounded">
+                    Сохранить настройки
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <script type="module" src="/src/main.js"></script>
+</body>
+</html>

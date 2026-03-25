@@ -5,18 +5,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PriceTracker</title>
 </head>
-<body class="bg-gray-50 font-sans antialiased">
+<body class="bg-gray-50 font-sans antialiased" x-data="trackingApp()" x-init="loadProducts()">
 
     <nav class="bg-white border-b border-gray-200 px-4 py-2.5">
         <div class="flex flex-wrap justify-between items-center mx-auto max-w-screen-xl">
             <span class="self-center text-xl font-semibold whitespace-nowrap">PriceTracker</span>
-            <button class="text-white bg-blue-700 hover:bg-blue-800 font-medium rounded-lg text-sm px-5 py-2.5">
-                Добавить товар
-            </button>
+            <div class="flex gap-3 items-center">
+                <a href="/profile.html" class="text-gray-700 hover:text-blue-700 font-medium text-sm px-4 py-2.5 transition">
+                    Профиль
+                </a>
+                <button x-show="products.length > 0" @click="showAddModal = true" class="text-white bg-blue-700 hover:bg-blue-800 font-medium rounded-lg text-sm px-5 py-2.5">
+                    Добавить товар
+                </button>
+            </div>
         </div>
     </nav>
 
-    <main class="p-8 max-w-screen-xl mx-auto" x-data="trackingApp()" x-init="loadProducts()">
+    <main class="p-8 max-w-screen-xl mx-auto">
         
         <h1 class="text-3xl font-bold mb-8 text-gray-900">Мои товары</h1>
 
@@ -31,7 +36,24 @@
             <p x-text="error"></p>
         </div>
 
-        <div x-show="!loading && !error" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <!-- Пустой список -->
+        <div x-show="!loading && !error && products.length === 0" class="text-center py-16">
+            <svg class="mx-auto h-24 w-24 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                      d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
+            </svg>
+            <h3 class="mt-4 text-lg font-medium text-gray-900">Нет товаров на отслеживании</h3>
+            <p class="mt-2 text-sm text-gray-500">Начните добавлять товары, чтобы отслеживать их цены.</p>
+            <button @click="showAddModal = true" 
+                    class="mt-6 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                <svg class="-ml-1 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                </svg>
+                Добавить первый товар
+            </button>
+        </div>
+
+        <div x-show="!loading && !error && products.length > 0" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             <template x-for="product in products" :key="product.id">
                 <div class="bg-white border border-gray-200 rounded-lg shadow-sm p-5 transition hover:shadow-md">
                     <div class="flex justify-between items-start mb-2">
@@ -39,7 +61,9 @@
                         <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-blue-100 text-blue-800"
                               x-text="product.store_name"></span>
                     </div>
-                    <p class="text-sm text-gray-500 mb-4" x-text="product.custom_name || product.product_name"></p>
+                    <div class="text-sm text-gray-500 mb-4 min-h-[1.25rem]">
+                        <span x-show="product.custom_name" x-text="product.custom_name"></span>
+                    </div>
                     
                     <div class="flex items-baseline mb-4" x-show="product.current_price">
                         <span class="text-4xl font-extrabold text-gray-900" x-text="product.current_price + ' ₽'"></span>
@@ -47,10 +71,85 @@
                               x-text="product.last_old_price + ' ₽'"></span>
                     </div>
                     
-                    <p class="text-xs text-gray-400 mb-4" x-show="product.price_updated_at" 
+                    <p class="text-xs text-gray-400 mb-3" x-show="product.price_updated_at" 
                        x-text="'Обновлено: ' + new Date(product.price_updated_at).toLocaleString('ru-RU')"></p>
+                    
+                    <!-- Галочка активного отслеживания -->
+                    <div class="flex items-center pt-3 border-t border-gray-100">
+                        <input type="checkbox" 
+                               :id="'active-' + product.id"
+                               :checked="product.is_active"
+                               @change="toggleActive(product)"
+                               class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500">
+                        <label :for="'active-' + product.id" class="ml-2 text-sm text-gray-700 cursor-pointer">
+                            Активное отслеживание
+                        </label>
+                    </div>
                 </div>
             </template>
+        </div>
+
+        <!-- Модальное окно добавления товара -->
+        <div x-show="showAddModal" 
+             class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50"
+             x-cloak
+             @click.self="showAddModal = false">
+            <div class="relative top-20 mx-auto p-5 border w-full max-w-md shadow-lg rounded-lg bg-white">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-semibold text-gray-900">Добавить товар</h3>
+                    <button @click="showAddModal = false" class="text-gray-400 hover:text-gray-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+                
+                <form @submit.prevent="addProduct" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Название товара *</label>
+                        <input type="text" x-model="newProduct.productName" required
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                               placeholder="iPhone 15 Pro">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Магазин *</label>
+                        <input type="text" x-model="newProduct.storeName" required
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                               placeholder="DNS, М.Видео, Ozon...">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Цена *</label>
+                        <input type="number" x-model="newProduct.price" required step="0.01" min="0"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                               placeholder="59990">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Свое название (опционально)</label>
+                        <input type="text" x-model="newProduct.customName"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                               placeholder="Мой телефон">
+                    </div>
+                    
+                    <div x-show="addError" class="bg-red-100 border border-red-400 text-red-700 px-3 py-2 rounded text-sm">
+                        <p x-text="addError"></p>
+                    </div>
+                    
+                    <div class="flex justify-end gap-3">
+                        <button type="button" @click="showAddModal = false"
+                                class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">
+                            Отмена
+                        </button>
+                        <button type="submit" :disabled="addLoading"
+                                class="px-4 py-2 text-sm font-medium text-white bg-blue-700 rounded-lg hover:bg-blue-800 disabled:opacity-50">
+                            <span x-show="!addLoading">Добавить</span>
+                            <span x-show="addLoading">Добавление...</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
     </main>
 
