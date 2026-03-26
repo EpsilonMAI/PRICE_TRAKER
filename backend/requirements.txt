@@ -1,5 +1,6 @@
 # Core
 Django==6.0.3
+gunicorn==23.0.0
 
 # REST API
 djangorestframework==3.17.0
@@ -10,6 +11,7 @@ psycopg2-binary==2.9.11
 
 # CORS
 django-cors-headers==4.9.0
+whitenoise==6.11.0
 
 # Media files
 pillow==12.1.1

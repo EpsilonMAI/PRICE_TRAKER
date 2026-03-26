@@ -1,0 +1,9 @@
+{$CADDY_SITE_ADDRESS} {
+    encode zstd gzip
+    root * /srv
+
+    @backend path /api/* /admin* /static/*
+    reverse_proxy @backend backend:8000
+
+    file_server
+}

@@ -1,0 +1,57 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: price_tracker_db_prod
+    environment:
+      POSTGRES_DB: ${DB_NAME:-price_tracker}
+      POSTGRES_USER: ${DB_USER:-price_tracker}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-price_tracker}
+    volumes:
+      - postgres_data_prod:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: price_tracker_backend_prod
+    env_file:
+      - .env.prod
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DJANGO_COLLECTSTATIC: "1"
+      DJANGO_COMMAND: gunicorn price_tracker.wsgi:application --bind 0.0.0.0:8000 --workers 3
+    depends_on:
+      db:
+        condition: service_healthy
+    expose:
+      - "8000"
+    restart: unless-stopped
+
+  caddy:
+    build:
+      context: .
+      dockerfile: deploy/caddy/Dockerfile
+    container_name: price_tracker_caddy
+    env_file:
+      - .env.prod
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+    restart: unless-stopped
+
+volumes:
+  postgres_data_prod:
+  caddy_data:
+  caddy_config:
