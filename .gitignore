@@ -11,6 +11,7 @@ ENV/
 
 # Python cache
 __pycache__/
+**/__pycache__/
 *.py[cod]
 *$py.class
 *.so
@@ -26,6 +27,8 @@ db.sqlite3-journal
 
 # Environment variables
 .env
+.env.docker
+.env.prod
 .env.local
 .env.*.local
 *.env

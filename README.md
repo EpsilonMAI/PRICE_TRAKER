@@ -199,6 +199,68 @@ npm run dev
 
 Доступна по адресу: http://127.0.0.1:8000/admin
 
+## Docker
+
+### Быстрый старт
+
+1. Создайте docker env-файл:
+
+```bash
+cp .env.docker.example .env.docker
+```
+
+2. Поднимите все сервисы:
+
+```bash
+docker compose --env-file .env.docker up --build
+```
+
+После запуска:
+
+- Frontend: http://127.0.0.1:5173
+- Backend API: http://127.0.0.1:8000
+- Django admin: http://127.0.0.1:8000/admin
+- PostgreSQL: `localhost:5432`
+
+### Что добавлено
+
+- `backend/Dockerfile` для Django backend
+- `frontend/tracker-ui/Dockerfile` для Vite frontend
+- `backend/docker/entrypoint.sh` с ожиданием PostgreSQL и автоприменением миграций
+- `docker-compose.yml` для `db`, `backend`, `frontend`
+- `.env.docker.example` с переменными окружения для контейнеров
+
+### Полезно знать
+
+- Backend читает настройки БД, `SECRET_KEY`, `DEBUG`, `ALLOWED_HOSTS` и `CORS_ALLOWED_ORIGINS` из env-переменных.
+- Frontend берёт адрес API из `VITE_API_BASE_URL`.
+- При необходимости команду запуска Django можно переопределить через `DJANGO_COMMAND` в `.env.docker`.
+
+## Production Docker
+
+Для серверного запуска добавлен отдельный файл [docker-compose.prod.yml](/Users/iladroskov/Coding/mai/semester_2/price_tracker/PRICE_TRAKER/docker-compose.prod.yml):
+
+1. Подготовьте production env:
+
+```bash
+cp .env.prod.example .env.prod
+```
+
+2. Укажите домен в `CADDY_SITE_ADDRESS` и реальные секреты/пароли.
+
+3. Запустите production-стек:
+
+```bash
+docker compose --env-file .env.prod -f docker-compose.prod.yml up --build -d
+```
+
+В production:
+
+- Django запускается через `gunicorn`
+- `Caddy` отдаёт frontend и проксирует `/api`, `/admin`, `/static` в backend
+- backend автоматически применяет миграции и выполняет `collectstatic`
+- PostgreSQL получает `POSTGRES_*` из `DB_*` через `docker-compose` и создаёт базу и пользователя при первом запуске volume
+
 ## Основные функции
 
 - ✅ JWT аутентификация
