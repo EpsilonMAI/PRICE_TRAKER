@@ -14,6 +14,15 @@ import os
 load_dotenv()
 scr_key = os.getenv("SECRET_KEY")
 
+db_name = os.getenv("DB_NAME")
+db_user = os.getenv("DB_USER")
+db_password = os.getenv("DB_PASSWORD")
+db_host = os.getenv("DB_HOST")
+db_port = os.getenv("DB_PORT")
+
+debug = os.getenv("DEBUG")
+cors_allowed_origins = os.getenv("CORS_ALLOWED_ORIGINS")
+
 
 from pathlib import Path
 
@@ -28,7 +37,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = scr_key
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = debug
 
 ALLOWED_HOSTS = []
 
@@ -88,11 +97,11 @@ WSGI_APPLICATION = 'price_tracker.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'price_tracker',
-        'USER': 'maxim',
-        'PASSWORD': '',
-        'HOST': 'localhost',
-        'PORT': '5432',
+        'NAME': db_name,
+        'USER': db_user,
+        'PASSWORD': db_password,
+        'HOST': db_host,
+        'PORT': db_port,
     }
 }
 
