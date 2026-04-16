@@ -21,4 +21,3 @@ python-dotenv==1.2.2
 
 # Parser
 seleniumbase>=4.32.0
-loguru==0.7.2
