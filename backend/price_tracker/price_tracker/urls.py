@@ -24,6 +24,7 @@ from rest_framework_simplejwt.views import (
     TokenVerifyView
 )
 from users.views import UserRegistration, GetProfile
+from stores.views import WBParserView
 
 
 urlpatterns = [
@@ -40,4 +41,5 @@ urlpatterns = [
     path('api/profile/', GetProfile.as_view()),
     path('api/additem/', AddItemToTrackAPIView.as_view()),
     path('api/tracking/<int:pk>/', UpdateTrackingItemAPIView.as_view()),
+    path('api/parser/wb/', WBParserView.as_view(), name='parser_wb'),
 ]

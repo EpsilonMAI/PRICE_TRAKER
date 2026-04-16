@@ -37,6 +37,8 @@ DEBUG = os.getenv("DEBUG", "True").lower() in {"1", "true", "yes", "on"}
 
 ALLOWED_HOSTS = env_list("ALLOWED_HOSTS", "localhost,127.0.0.1,backend")
 
+# External Services Settings
+WB_COOKIES = os.getenv("WB_COOKIES", "")
 
 # Application definition
 
