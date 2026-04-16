@@ -23,7 +23,7 @@
                 <a href="/profile.html" class="text-gray-700 hover:text-blue-700 font-medium text-sm px-4 py-2.5 transition">
                     Профиль
                 </a>
-                <button x-show="products.length > 0" @click="showAddModal = true" class="text-white bg-blue-700 hover:bg-blue-800 font-medium rounded-lg text-sm px-5 py-2.5">
+                <button x-show="products.length > 0" @click="openAddModal()" class="text-white bg-blue-700 hover:bg-blue-800 font-medium rounded-lg text-sm px-5 py-2.5">
                     Добавить товар
                 </button>
             </div>
@@ -53,7 +53,7 @@
             </svg>
             <h3 class="mt-4 text-lg font-medium text-gray-900">Нет товаров на отслеживании</h3>
             <p class="mt-2 text-sm text-gray-500">Начните добавлять товары, чтобы отслеживать их цены.</p>
-            <button @click="showAddModal = true" 
+            <button @click="openAddModal()" 
                     class="mt-6 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                 <svg class="-ml-1 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
@@ -62,74 +62,81 @@
             </button>
         </div>
 
-        <div x-show="!loading && !error && products.length > 0" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div x-show="!loading && !error && products.length > 0" class="grid grid-cols-1 items-start gap-6 sm:grid-cols-2 lg:grid-cols-3">
             <template x-for="product in products" :key="product.id">
-                <div class="bg-white border border-gray-200 rounded-2xl shadow-sm p-5 transition hover:shadow-md">
-                    <div class="flex justify-between items-start mb-2">
-                        <h5 class="text-lg font-bold text-gray-900" x-text="product.product_name"></h5>
-                        <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-blue-100 text-blue-800"
-                              x-text="product.store_name"></span>
-                    </div>
-                    <div class="text-sm text-gray-500 mb-4 min-h-[1.25rem]">
-                        <span x-show="product.custom_name" x-text="product.custom_name"></span>
+                <div class="flex h-full flex-col self-start rounded-2xl border border-gray-200 bg-white px-5 pt-5 pb-[0.28rem] shadow-sm transition hover:shadow-md">
+                    <div class="relative pr-32">
+                        <h5 class="max-w-full text-lg font-bold text-gray-900" x-text="product.product_name"></h5>
+                        <div class="mt-2 min-h-[1.25rem] text-sm text-gray-500">
+                            <span x-show="product.custom_name" x-text="product.custom_name"></span>
+                        </div>
+                        <div class="absolute right-0 top-0 pl-4">
+                            <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-blue-100 text-blue-800"
+                                  x-text="product.store_name"></span>
+                        </div>
                     </div>
 
-                    <div class="flex items-end justify-between gap-4 mb-4">
-                        <div class="min-w-0 flex-1">
-                            <div class="flex items-baseline" x-show="product.current_price">
-                                <span class="text-4xl font-extrabold text-gray-900" x-text="formatPrice(product.current_price) + ' ₽'"></span>
-                                <span class="text-sm text-gray-400 line-through ml-2" x-show="product.last_old_price"
+                    <div class="mt-auto pt-2">
+                        <div class="min-w-0" x-show="product.current_price">
+                            <div class="flex min-w-0 items-end gap-3 leading-none">
+                                <span class="min-w-0 whitespace-nowrap text-[3rem] font-extrabold leading-[0.9] tracking-tight text-gray-900 lg:text-[2.75rem] 2xl:text-[3rem]"
+                                      x-text="formatPrice(product.current_price) + ' ₽'"></span>
+                                <span class="shrink-0 translate-y-[0.03rem] text-xs text-gray-400 line-through sm:text-sm"
+                                      x-show="product.last_old_price"
                                       x-text="formatPrice(product.last_old_price) + ' ₽'"></span>
                             </div>
                         </div>
 
-                        <button type="button"
+                        <div class="mt-2">
+                            <button type="button"
                                 @click="openHistory(product)"
-                                class="group relative mr-2 shrink-0 w-40 rounded-2xl border border-slate-200 bg-slate-50/80 p-3 text-left transition hover:border-blue-300 hover:bg-blue-50">
-                            <div class="mb-2 flex items-center justify-between">
-                                <span class="text-[11px] font-medium uppercase tracking-[0.12em] text-slate-500">Цена</span>
-                                <span class="rounded-full px-2 py-0.5 text-[10px] font-semibold"
-                                      :class="getSparklineBadgeClass(product)">
-                                    История
-                                </span>
-                            </div>
-
-                            <template x-if="hasSparkline(product)">
-                                <svg :viewBox="`0 0 160 72`"
-                                     preserveAspectRatio="none"
-                                     class="-ml-[13px] block h-[72px] w-[calc(100%+13px)] overflow-visible">
-                                     <path :d="buildSparklineAreaPath(product)"
-                                           :fill="getSparklineFill(product)"></path>
-                                    <path :d="buildSparklinePath(product)"
-                                          fill="none"
-                                          :stroke="getSparklineStroke(product)"
-                                          stroke-width="2.5"
-                                          stroke-linecap="round"
-                                          stroke-linejoin="round"></path>
-                                </svg>
-                            </template>
-
-                            <template x-if="!hasSparkline(product)">
-                                <div class="flex h-[72px] items-center justify-center rounded-xl border border-dashed border-slate-200 bg-white text-center text-xs text-slate-400">
-                                    Недостаточно данных
+                                class="group relative block w-full rounded-2xl border border-slate-200 bg-slate-50/80 p-3 text-left transition hover:border-blue-300 hover:bg-blue-50">
+                                <div class="mb-2 flex items-center justify-between">
+                                    <span class="text-[11px] font-medium uppercase tracking-[0.12em] text-slate-500">Цена</span>
+                                    <span class="rounded-full px-2 py-0.5 text-[10px] font-semibold"
+                                          :class="getSparklineBadgeClass(product)">
+                                        История
+                                    </span>
                                 </div>
-                            </template>
-                        </button>
+
+                                <template x-if="hasSparkline(product)">
+                                    <svg :viewBox="`0 0 320 72`"
+                                         preserveAspectRatio="none"
+                                         class="block h-[72px] w-[calc(100%+37px)] overflow-visible">
+                                         <path :d="buildSparklineAreaPath(product)"
+                                               :fill="getSparklineFill(product)"></path>
+                                        <path :d="buildSparklinePath(product)"
+                                              fill="none"
+                                              :stroke="getSparklineStroke(product)"
+                                              stroke-width="2.5"
+                                              stroke-linecap="round"
+                                              stroke-linejoin="round"></path>
+                                    </svg>
+                                </template>
+
+                                <template x-if="!hasSparkline(product)">
+                                    <div class="flex h-[72px] items-center justify-center rounded-xl border border-dashed border-slate-200 bg-white text-center text-xs text-slate-400">
+                                        Недостаточно данных
+                                    </div>
+                                </template>
+                            </button>
+                        </div>
                     </div>
 
-                    <p class="text-xs text-gray-400 mb-3" x-show="product.price_updated_at" 
-                       x-text="'Обновлено: ' + new Date(product.price_updated_at).toLocaleString('ru-RU')"></p>
-
-                    <!-- Галочка активного отслеживания -->
-                    <div class="flex items-center pt-3 border-t border-gray-100">
-                        <input type="checkbox" 
-                               :id="'active-' + product.id"
-                               :checked="product.is_active"
-                               @change="toggleActive(product)"
-                               class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500">
-                        <label :for="'active-' + product.id" class="ml-2 text-sm text-gray-700 cursor-pointer">
-                            Активное отслеживание
-                        </label>
+                    <div class="mt-2 flex items-center justify-between border-t border-gray-100 pt-2 pb-[0.28rem]">
+                        <div class="flex items-center">
+                            <input type="checkbox" 
+                                   :id="'active-' + product.id"
+                                   :checked="product.is_active"
+                                   @change="toggleActive(product)"
+                                   class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500">
+                            <label :for="'active-' + product.id" class="ml-2 text-sm text-gray-700 cursor-pointer">
+                                Активное отслеживание
+                            </label>
+                        </div>
+                        <p class="ml-3 shrink-0 text-sm text-gray-400"
+                           x-show="product.price_updated_at"
+                           x-text="formatCardDateTime(product.price_updated_at)"></p>
                     </div>
                 </div>
             </template>
@@ -245,11 +252,11 @@
         <div x-show="showAddModal" 
              class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50"
              x-cloak
-             @click.self="showAddModal = false">
+             @click.self="closeAddModal()">
             <div class="relative top-20 mx-auto p-5 border w-full max-w-md shadow-lg rounded-lg bg-white">
                 <div class="flex justify-between items-center mb-4">
                     <h3 class="text-lg font-semibold text-gray-900">Добавить товар</h3>
-                    <button @click="showAddModal = false" class="text-gray-400 hover:text-gray-600">
+                    <button @click="closeAddModal()" class="text-gray-400 hover:text-gray-600">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                         </svg>
@@ -305,7 +312,7 @@
                     </div>
                     
                     <div class="flex justify-end gap-3">
-                        <button type="button" @click="showAddModal = false"
+                        <button type="button" @click="closeAddModal()"
                                 class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">
                             Отмена
                         </button>
@@ -350,7 +357,7 @@
                     </div>
 
                     <div class="flex justify-end gap-3">
-                        <button type="button" @click="showAddModal = false"
+                        <button type="button" @click="closeAddModal()"
                                 class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">
                             Закрыть
                         </button>

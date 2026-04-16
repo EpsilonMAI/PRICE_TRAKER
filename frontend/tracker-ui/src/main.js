@@ -5,7 +5,7 @@ import Alpine from 'alpinejs'
 import { api } from './api.js'
 
 const sparklineSize = {
-    width: 160,
+    width: 320,
     height: 72,
     padding: { top: 6, right: 2, bottom: 6, left: 2 },
 };
@@ -52,6 +52,14 @@ function buildLinePath(points, width, height, padding) {
         return '';
     }
 
+    if (coordinates.length === 1) {
+        const pad = typeof padding === 'number'
+            ? { top: padding, right: padding, bottom: padding, left: padding }
+            : padding;
+        const y = coordinates[0].y;
+        return `M ${pad.left} ${y} L ${width - pad.right} ${y}`;
+    }
+
     return coordinates.map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`).join(' ');
 }
 
@@ -65,6 +73,12 @@ function buildAreaPath(points, width, height, padding) {
         ? { top: padding, right: padding, bottom: padding, left: padding }
         : padding;
     const baseline = height - pad.bottom;
+
+    if (coordinates.length === 1) {
+        const y = coordinates[0].y;
+        return `M ${pad.left} ${y} L ${width - pad.right} ${y} L ${width - pad.right} ${baseline} L ${pad.left} ${baseline} Z`;
+    }
+
     const line = coordinates.map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`).join(' ');
     const last = coordinates[coordinates.length - 1];
     const first = coordinates[0];
@@ -142,6 +156,27 @@ window.trackingApp = function() {
                 return;
             }
         },
+
+        resetAddModalState() {
+            this.newProduct = { productName: '', storeName: '', price: '', customName: '' };
+            this.addLoading = false;
+            this.addError = null;
+            this.wbUrl = '';
+            this.wbLoading = false;
+            this.wbResult = null;
+            this.wbError = null;
+            this.addTab = 'manual';
+        },
+
+        openAddModal() {
+            this.resetAddModalState();
+            this.showAddModal = true;
+        },
+
+        closeAddModal() {
+            this.showAddModal = false;
+            this.resetAddModalState();
+        },
         
         async loadProducts() {
             try {
@@ -164,12 +199,7 @@ window.trackingApp = function() {
                 await api.addProduct(this.newProduct);
                 
                 // Закрываем модальное окно и сбрасываем форму
-                this.showAddModal = false;
-                this.newProduct = { productName: '', storeName: '', price: '', customName: '' };
-                this.wbUrl = '';
-                this.wbResult = null;
-                this.wbError = null;
-                this.addTab = 'manual';
+                this.closeAddModal();
                 
                 // Перезагружаем список товаров
                 await this.loadProducts();
@@ -243,7 +273,7 @@ window.trackingApp = function() {
         },
 
         hasSparkline(product) {
-            return this.getSparklinePoints(product).length >= 2;
+            return this.getSparklinePoints(product).length >= 1;
         },
 
         getSparklineStroke(product) {
@@ -455,13 +485,24 @@ window.trackingApp = function() {
             });
         },
 
+        formatCardDateTime(dateString) {
+            if (!dateString) return '';
+            return new Date(dateString).toLocaleString('ru-RU', {
+                day: '2-digit',
+                month: 'short',
+                hour: '2-digit',
+                minute: '2-digit',
+            }).replace('.', '');
+        },
+
         async addByUrl() {
             if (!this.wbUrl) return;
             this.wbLoading = true;
             this.wbResult = null;
             this.wbError = null;
             try {
-                this.wbResult = await api.parseWBByUrl(this.wbUrl);
+                await api.parseWBByUrl(this.wbUrl);
+                this.closeAddModal();
                 await this.loadProducts();
             } catch (err) {
                 this.wbError = err.message || 'Не удалось получить данные о товаре';
