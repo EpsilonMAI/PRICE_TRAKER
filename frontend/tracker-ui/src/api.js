@@ -89,6 +89,42 @@ export const api = {
     return response.json();
   },
 
+  // Поиск и добавление товара через WB парсер
+  async parseWB(query) {
+    const token = localStorage.getItem('access_token');
+    const response = await fetch(`${API_BASE_URL}/parser/wb/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({ query }),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Товар не найден на Wildberries');
+    }
+    return response.json();
+  },
+
+  // Добавить товар по прямой ссылке WB
+  async parseWBByUrl(url) {
+    const token = localStorage.getItem('access_token');
+    const response = await fetch(`${API_BASE_URL}/parser/wb/url/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({ url }),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Не удалось получить данные о товаре');
+    }
+    return response.json();
+  },
+
   // Переключить активное отслеживание товара
   async toggleProductActive(productId, isActive) {
     const token = localStorage.getItem('access_token');

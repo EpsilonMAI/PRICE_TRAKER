@@ -4,12 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Вход - PriceTracker</title>
+    <script>
+        // Уже авторизован — сразу в трекер
+        if (localStorage.getItem('access_token')) {
+            sessionStorage.setItem('visited', '1');
+            window.location.replace('/index.html');
+        }
+    </script>
 </head>
 <body class="bg-gray-50 font-sans antialiased">
 
     <nav class="bg-white border-b border-gray-200 px-4 py-2.5">
         <div class="flex flex-wrap justify-between items-center mx-auto max-w-screen-xl">
-            <a href="/" class="self-center text-xl font-semibold whitespace-nowrap">PriceTracker</a>
+            <a href="/about.html" class="self-center text-xl font-semibold whitespace-nowrap">PriceTracker</a>
             <div class="flex items-center space-x-4">
                 <a href="/register.html" class="text-gray-700 hover:text-blue-700">Регистрация</a>
             </div>

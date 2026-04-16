@@ -4,12 +4,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PriceTracker</title>
+    <script>
+        if (!sessionStorage.getItem('visited')) {
+            // Первый заход на сайт — всегда показываем страницу «О нас»
+            window.location.replace('/about.html');
+        } else if (!localStorage.getItem('access_token')) {
+            // Уже видел сайт, но не авторизован — на страницу входа
+            window.location.replace('/login.html');
+        }
+    </script>
 </head>
 <body class="bg-gray-50 font-sans antialiased" x-data="trackingApp()" x-init="loadProducts()">
 
     <nav class="bg-white border-b border-gray-200 px-4 py-2.5">
         <div class="flex flex-wrap justify-between items-center mx-auto max-w-screen-xl">
-            <span class="self-center text-xl font-semibold whitespace-nowrap">PriceTracker</span>
+            <a href="/about.html" class="self-center text-xl font-semibold whitespace-nowrap">PriceTracker</a>
             <div class="flex gap-3 items-center">
                 <a href="/profile.html" class="text-gray-700 hover:text-blue-700 font-medium text-sm px-4 py-2.5 transition">
                     Профиль
@@ -246,8 +255,23 @@
                         </svg>
                     </button>
                 </div>
-                
-                <form @submit.prevent="addProduct" class="space-y-4">
+
+                <!-- Вкладки -->
+                <div class="flex border-b border-gray-200 mb-4">
+                    <button @click="addTab = 'manual'"
+                            :class="addTab === 'manual' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'"
+                            class="px-4 py-2 text-sm font-medium">
+                        Вручную
+                    </button>
+                    <button @click="addTab = 'wb'"
+                            :class="addTab === 'wb' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'"
+                            class="px-4 py-2 text-sm font-medium">
+                        По ссылке WB
+                    </button>
+                </div>
+
+                <!-- Ручное добавление -->
+                <form x-show="addTab === 'manual'" @submit.prevent="addProduct" class="space-y-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Название товара *</label>
                         <input type="text" x-model="newProduct.productName" required
@@ -270,7 +294,7 @@
                     </div>
                     
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Свое название (опционально)</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Своё название (опционально)</label>
                         <input type="text" x-model="newProduct.customName"
                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
                                placeholder="Мой телефон">
@@ -292,6 +316,52 @@
                         </button>
                     </div>
                 </form>
+
+                <!-- Добавление по ссылке WB -->
+                <div x-show="addTab === 'wb'" class="space-y-4">
+                    <p class="text-sm text-gray-500">
+                        Вставьте ссылку на товар с Wildberries — цена и название подтянутся автоматически (~1 сек).
+                    </p>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Ссылка на товар *</label>
+                        <input type="url" x-model="wbUrl"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                               placeholder="https://www.wildberries.ru/catalog/12345678/detail.aspx"
+                               @keydown.enter.prevent="addByUrl">
+                    </div>
+
+                    <!-- Результат -->
+                    <div x-show="wbResult" class="bg-green-50 border border-green-200 rounded-lg p-3 text-sm">
+                        <p class="font-medium text-green-800 mb-1">✅ Товар добавлен!</p>
+                        <p class="text-green-700" x-text="wbResult?.offer?.name"></p>
+                        <p class="text-green-600 font-bold" x-text="wbResult?.offer?.price + ' ₽'"></p>
+                        <a :href="wbResult?.offer?.url" target="_blank"
+                           class="text-blue-600 hover:underline text-xs">Открыть на WB →</a>
+                    </div>
+
+                    <div x-show="wbError" class="bg-red-100 border border-red-400 text-red-700 px-3 py-2 rounded text-sm">
+                        <p x-text="wbError"></p>
+                    </div>
+
+                    <div x-show="wbLoading" class="flex items-center gap-2 text-sm text-gray-600">
+                        <div class="inline-block h-4 w-4 animate-spin rounded-full border-2 border-solid border-blue-600 border-r-transparent"></div>
+                        <span>Получаем данные о товаре...</span>
+                    </div>
+
+                    <div class="flex justify-end gap-3">
+                        <button type="button" @click="showAddModal = false"
+                                class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">
+                            Закрыть
+                        </button>
+                        <button @click="addByUrl" :disabled="wbLoading || !wbUrl"
+                                class="px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 disabled:opacity-50">
+                            <span x-show="!wbLoading">➕ Добавить товар</span>
+                            <span x-show="wbLoading">Загрузка...</span>
+                        </button>
+                    </div>
+                </div>
+
             </div>
         </div>
     </main>

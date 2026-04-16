@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>О нас — PriceTracker</title>
+    <script>
+        // Фиксируем, что пользователь уже видел главную страницу
+        sessionStorage.setItem('visited', '1');
+    </script>
+</head>
+<body class="bg-gray-50 font-sans antialiased">
+
+    <nav class="bg-white border-b border-gray-200 px-4 py-2.5">
+        <div class="flex flex-wrap justify-between items-center mx-auto max-w-screen-xl">
+            <a href="/about.html" class="self-center text-xl font-semibold whitespace-nowrap">PriceTracker</a>
+            <div class="flex items-center gap-3">
+                <a href="/about.html" class="text-blue-700 font-medium text-sm px-4 py-2.5">О нас</a>
+                <a href="/login.html" class="text-gray-700 hover:text-blue-700 font-medium text-sm px-4 py-2.5 transition">Войти</a>
+                <a href="/register.html" class="text-white bg-blue-700 hover:bg-blue-800 font-medium rounded-lg text-sm px-5 py-2.5 transition">
+                    Начать бесплатно
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero -->
+    <section class="bg-white border-b border-gray-100">
+        <div class="max-w-screen-xl mx-auto px-4 py-20 flex flex-col items-center text-center">
+            <span class="bg-blue-100 text-blue-700 text-xs font-semibold px-3 py-1 rounded-full mb-6 tracking-wide uppercase">
+                Бесплатный сервис
+            </span>
+            <h1 class="text-5xl font-extrabold text-gray-900 leading-tight mb-6 max-w-3xl">
+                Следите за ценами.<br>
+                <span class="text-blue-700">Покупайте выгодно.</span>
+            </h1>
+            <p class="text-xl text-gray-500 mb-10 max-w-xl">
+                PriceTracker автоматически отслеживает цены на товары в интернет-магазинах
+                и сообщает вам, когда цена снижается.
+            </p>
+            <div class="flex flex-wrap gap-4 justify-center">
+                <a href="/register.html"
+                   class="text-white bg-blue-700 hover:bg-blue-800 font-semibold rounded-lg text-base px-8 py-3 transition shadow-sm">
+                    Создать аккаунт
+                </a>
+                <a href="/login.html"
+                   class="text-blue-700 bg-blue-50 hover:bg-blue-100 font-semibold rounded-lg text-base px-8 py-3 transition">
+                    Войти
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Как это работает -->
+    <section class="max-w-screen-xl mx-auto px-4 py-20">
+        <h2 class="text-3xl font-bold text-gray-900 text-center mb-4">Как это работает</h2>
+        <p class="text-gray-500 text-center mb-12 max-w-xl mx-auto">
+            Всего три шага — и вы всегда в курсе актуальных цен.
+        </p>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 flex flex-col items-start">
+                <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mb-5">
+                    <svg class="w-6 h-6 text-blue-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M14.828 14.828a4 4 0 015.656 0l4-4a4 4 0 01-5.656-5.656l-1.1 1.1"/>
+                    </svg>
+                </div>
+                <h3 class="text-lg font-bold text-gray-900 mb-2">1. Добавьте ссылку</h3>
+                <p class="text-gray-500 text-sm">
+                    Вставьте ссылку на товар с Wildberries — мы автоматически получим название и текущую цену.
+                </p>
+            </div>
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 flex flex-col items-start">
+                <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center mb-5">
+                    <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                    </svg>
+                </div>
+                <h3 class="text-lg font-bold text-gray-900 mb-2">2. Мы следим за ценой</h3>
+                <p class="text-gray-500 text-sm">
+                    Система регулярно проверяет актуальную цену и сохраняет историю изменений.
+                </p>
+            </div>
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 flex flex-col items-start">
+                <div class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center mb-5">
+                    <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                    </svg>
+                </div>
+                <h3 class="text-lg font-bold text-gray-900 mb-2">3. Покупайте дёшево</h3>
+                <p class="text-gray-500 text-sm">
+                    Смотрите текущую цену и историю прямо в личном кабинете. Покупайте в нужный момент.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Возможности -->
+    <section class="bg-white border-y border-gray-100">
+        <div class="max-w-screen-xl mx-auto px-4 py-20">
+            <h2 class="text-3xl font-bold text-gray-900 text-center mb-4">Возможности</h2>
+            <p class="text-gray-500 text-center mb-12 max-w-xl mx-auto">
+                Всё необходимое для умных покупок в одном месте.
+            </p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div class="flex items-start gap-4 p-5 rounded-xl hover:bg-gray-50 transition">
+                    <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center shrink-0">
+                        <svg class="w-5 h-5 text-blue-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold text-gray-900 mb-1">Мгновенный парсинг</h4>
+                        <p class="text-sm text-gray-500">Цена по ссылке WB получается за ~1 секунду без браузера.</p>
+                    </div>
+                </div>
+                <div class="flex items-start gap-4 p-5 rounded-xl hover:bg-gray-50 transition">
+                    <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center shrink-0">
+                        <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold text-gray-900 mb-1">Безопасный аккаунт</h4>
+                        <p class="text-sm text-gray-500">JWT авторизация — ваши данные видны только вам.</p>
+                    </div>
+                </div>
+                <div class="flex items-start gap-4 p-5 rounded-xl hover:bg-gray-50 transition">
+                    <div class="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center shrink-0">
+                        <svg class="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold text-gray-900 mb-1">История цен</h4>
+                        <p class="text-sm text-gray-500">Сохраняем каждое изменение цены — видно зачёркнутую и текущую.</p>
+                    </div>
+                </div>
+                <div class="flex items-start gap-4 p-5 rounded-xl hover:bg-gray-50 transition">
+                    <div class="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center shrink-0">
+                        <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold text-gray-900 mb-1">Любимые товары</h4>
+                        <p class="text-sm text-gray-500">Добавляйте неограниченное число товаров из любых магазинов.</p>
+                    </div>
+                </div>
+                <div class="flex items-start gap-4 p-5 rounded-xl hover:bg-gray-50 transition">
+                    <div class="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center shrink-0">
+                        <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold text-gray-900 mb-1">Своё название</h4>
+                        <p class="text-sm text-gray-500">Давайте товарам понятные имена — легко найти нужный в списке.</p>
+                    </div>
+                </div>
+                <div class="flex items-start gap-4 p-5 rounded-xl hover:bg-gray-50 transition">
+                    <div class="w-10 h-10 bg-teal-100 rounded-lg flex items-center justify-center shrink-0">
+                        <svg class="w-5 h-5 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold text-gray-900 mb-1">Вкл / Выкл отслеживание</h4>
+                        <p class="text-sm text-gray-500">Временно останавливайте слежение одной галочкой.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- О проекте -->
+    <section class="max-w-screen-xl mx-auto px-4 py-20">
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-10 md:p-14 flex flex-col md:flex-row gap-12 items-start">
+            <div class="flex-1">
+                <h2 class="text-3xl font-bold text-gray-900 mb-5">О проекте</h2>
+                <p class="text-gray-500 mb-4 leading-relaxed">
+                    PriceTracker — учебный проект, разработанный в рамках курса T1 Case на первом курсе МАИ.
+                    Цель — создать полноценный веб-сервис с реальным стеком технологий.
+                </p>
+                <p class="text-gray-500 leading-relaxed">
+                    Бэкенд построен на <span class="font-medium text-gray-700">Django REST Framework</span> с JWT-авторизацией
+                    и PostgreSQL. Фронтенд — <span class="font-medium text-gray-700">Alpine.js</span> + <span class="font-medium text-gray-700">Tailwind CSS</span>.
+                    Парсинг цен осуществляется через официальное API Wildberries.
+                </p>
+            </div>
+            <div class="flex-1 grid grid-cols-2 gap-4">
+                <div class="bg-blue-50 rounded-xl p-6 text-center">
+                    <p class="text-3xl font-extrabold text-blue-700 mb-1">WB</p>
+                    <p class="text-sm text-gray-500">Поддерживаемый магазин</p>
+                </div>
+                <div class="bg-green-50 rounded-xl p-6 text-center">
+                    <p class="text-3xl font-extrabold text-green-600 mb-1">~1с</p>
+                    <p class="text-sm text-gray-500">Время получения цены</p>
+                </div>
+                <div class="bg-purple-50 rounded-xl p-6 text-center">
+                    <p class="text-3xl font-extrabold text-purple-600 mb-1">JWT</p>
+                    <p class="text-sm text-gray-500">Безопасная авторизация</p>
+                </div>
+                <div class="bg-yellow-50 rounded-xl p-6 text-center">
+                    <p class="text-3xl font-extrabold text-yellow-600 mb-1">∞</p>
+                    <p class="text-sm text-gray-500">Товаров для отслеживания</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="bg-blue-700 py-16">
+        <div class="max-w-screen-xl mx-auto px-4 text-center">
+            <h2 class="text-3xl font-bold text-white mb-4">Готовы начать экономить?</h2>
+            <p class="text-blue-200 mb-8 text-lg">Регистрация бесплатна. Добавьте первый товар за 30 секунд.</p>
+            <a href="/register.html"
+               class="inline-block bg-white text-blue-700 font-bold rounded-lg text-base px-10 py-3 hover:bg-blue-50 transition shadow-sm">
+                Зарегистрироваться
+            </a>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-gray-200 py-8">
+        <div class="max-w-screen-xl mx-auto px-4 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <span class="text-gray-400 text-sm">© 2026 PriceTracker — учебный проект МАИ</span>
+            <div class="flex gap-6 text-sm text-gray-400">
+                <a href="/about.html" class="hover:text-gray-600 transition">О нас</a>
+                <a href="/login.html" class="hover:text-gray-600 transition">Войти</a>
+                <a href="/register.html" class="hover:text-gray-600 transition">Регистрация</a>
+            </div>
+        </div>
+    </footer>
+
+    <script type="module" src="/src/main.js"></script>
+</body>
+</html>
