@@ -10,6 +10,7 @@ window.trackingApp = function() {
         loading: true,
         error: null,
         showAddModal: false,
+        addTab: 'manual',
         newProduct: {
             productName: '',
             storeName: '',
@@ -18,6 +19,10 @@ window.trackingApp = function() {
         },
         addLoading: false,
         addError: null,
+        wbUrl: '',
+        wbLoading: false,
+        wbResult: null,
+        wbError: null,
         
         init() {
             // Проверить авторизацию
@@ -50,6 +55,10 @@ window.trackingApp = function() {
                 // Закрываем модальное окно и сбрасываем форму
                 this.showAddModal = false;
                 this.newProduct = { productName: '', storeName: '', price: '', customName: '' };
+                this.wbUrl = '';
+                this.wbResult = null;
+                this.wbError = null;
+                this.addTab = 'manual';
                 
                 // Перезагружаем список товаров
                 await this.loadProducts();
@@ -66,9 +75,23 @@ window.trackingApp = function() {
                 product.is_active = updated.is_active;
             } catch (error) {
                 console.error('Failed to toggle active status:', error);
-                // Откатываем чекбокс назад при ошибке
                 product.is_active = !product.is_active;
                 this.error = 'Не удалось обновить статус отслеживания';
+            }
+        },
+
+        async addByUrl() {
+            if (!this.wbUrl) return;
+            this.wbLoading = true;
+            this.wbResult = null;
+            this.wbError = null;
+            try {
+                this.wbResult = await api.parseWBByUrl(this.wbUrl);
+                await this.loadProducts();
+            } catch (err) {
+                this.wbError = err.message || 'Не удалось получить данные о товаре';
+            } finally {
+                this.wbLoading = false;
             }
         }
     }
