@@ -40,6 +40,7 @@ urlpatterns = [
     path('api/register/', UserRegistration.as_view()),
     path('api/profile/', GetProfile.as_view()),
     path('api/additem/', AddItemToTrackAPIView.as_view()),
+    path('api/tracking/<int:pk>/history/', TrackingItemHistoryAPIView.as_view()),
     path('api/tracking/<int:pk>/', UpdateTrackingItemAPIView.as_view()),
     path('api/parser/wb/', WBParserView.as_view(), name='parser_wb'),
 ]

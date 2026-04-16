@@ -1,18 +1,21 @@
 """Views для управления отслеживанием товаров и их историей цен."""
-from typing import Any
+from datetime import timedelta
 
 from rest_framework import generics
+from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.request import Request
 from rest_framework.response import Response
+from django.shortcuts import get_object_or_404
 from django.db.models import QuerySet
+from django.utils import timezone
 
 from .models import TrackingItems, PriceHistory
 from .serializers import (
     TrackingItemSerializer, 
     PriceHistorySerializer, 
     AddItemToUserTrack, 
-    UpdateTrackingItemSerializer
+    UpdateTrackingItemSerializer,
+    TrackingItemHistorySerializer,
 )
 
 
@@ -92,3 +95,41 @@ class UpdateTrackingItemAPIView(generics.UpdateAPIView):
             QuerySet[TrackingItems]: Только товары текущего пользователя
         """
         return TrackingItems.objects.filter(user=self.request.user)
+
+
+class TrackingItemHistoryAPIView(generics.RetrieveAPIView):
+    """API для получения подробной истории цен одного товара."""
+
+    serializer_class = TrackingItemHistorySerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self) -> QuerySet[TrackingItems]:
+        return TrackingItems.objects.filter(user=self.request.user).select_related(
+            "product",
+            "store",
+        )
+
+    def get_serializer_context(self) -> dict:
+        context = super().get_serializer_context()
+        context["history_points"] = list(self._get_history_queryset())
+        return context
+
+    def _get_history_queryset(self) -> QuerySet[PriceHistory]:
+        tracking_item = get_object_or_404(self.get_queryset(), pk=self.kwargs["pk"])
+        queryset = tracking_item.price_history.filter(price__isnull=False).order_by("collected_at")
+        period = self.request.query_params.get("period", "30")
+
+        if period == "all":
+            return queryset
+
+        period_map = {
+            "7": 7,
+            "30": 30,
+            "90": 90,
+        }
+
+        if period not in period_map:
+            raise ValidationError({"period": "Допустимые значения: 7, 30, 90, all"})
+
+        cutoff = timezone.now() - timedelta(days=period_map[period])
+        return queryset.filter(collected_at__gte=cutoff)

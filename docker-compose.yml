@@ -22,6 +22,7 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: price_tracker_backend
+    entrypoint: ["sh", "/app/docker/entrypoint.sh"]
     # Chrome в Docker требует расширенный /dev/shm и отключённый seccomp
     shm_size: '2gb'
     security_opt:

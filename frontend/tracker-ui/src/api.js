@@ -14,6 +14,20 @@ export const api = {
     return response.json();
   },
 
+  async getProductHistory(productId, period = '30') {
+    const token = localStorage.getItem('access_token');
+    const response = await fetch(`${API_BASE_URL}/tracking/${productId}/history/?period=${period}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.detail || error.period || 'Не удалось загрузить историю цен');
+    }
+    return response.json();
+  },
+
   // Регистрация
   async register(userData) {
     const response = await fetch(`${API_BASE_URL}/register/`, {
