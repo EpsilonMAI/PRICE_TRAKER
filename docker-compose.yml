@@ -22,6 +22,10 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: price_tracker_backend
+    # Chrome в Docker требует расширенный /dev/shm и отключённый seccomp
+    shm_size: '2gb'
+    security_opt:
+      - seccomp:unconfined
     env_file:
       - .env.docker
     environment:
