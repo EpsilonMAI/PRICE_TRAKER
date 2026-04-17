@@ -1,6 +1,17 @@
 // Vite прокидывает адрес backend через env, а локальный запуск сохраняет прежний fallback.
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000/api';
 
+function handleUnauthorized(response) {
+  if (response.status !== 401) {
+    return false;
+  }
+
+  localStorage.removeItem('access_token');
+  localStorage.removeItem('refresh_token');
+  window.location.href = '/login.html';
+  return true;
+}
+
 export const api = {
   // Получить все продукты
   async getProducts() {
@@ -10,6 +21,7 @@ export const api = {
         'Authorization': `Bearer ${token}`,
       },
     });
+    if (handleUnauthorized(response)) return [];
     if (!response.ok) throw new Error('Failed to fetch products');
     return response.json();
   },
@@ -21,11 +33,30 @@ export const api = {
         'Authorization': `Bearer ${token}`,
       },
     });
+    if (handleUnauthorized(response)) return null;
     if (!response.ok) {
       const error = await response.json().catch(() => ({}));
       throw new Error(error.detail || error.period || 'Не удалось загрузить историю цен');
     }
     return response.json();
+  },
+
+  async refreshProductPrice(productId) {
+    const token = localStorage.getItem('access_token');
+    const response = await fetch(`${API_BASE_URL}/tracking/${productId}/refresh/`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+    if (handleUnauthorized(response)) return null;
+
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(payload.message || payload.detail || 'Не удалось обновить цену');
+    }
+
+    return payload;
   },
 
   // Регистрация
@@ -67,6 +98,7 @@ export const api = {
         'Authorization': `Bearer ${token}`,
       },
     });
+    if (handleUnauthorized(response)) return null;
     if (!response.ok) throw new Error('Не удалось загрузить профиль');
     return response.json();
   },
@@ -82,6 +114,7 @@ export const api = {
       },
       body: JSON.stringify(productData),
     });
+    if (handleUnauthorized(response)) return null;
     if (!response.ok) {
       const error = await response.json();
       throw new Error(error.detail || 'Ошибка добавления товара');
@@ -100,6 +133,7 @@ export const api = {
       },
       body: JSON.stringify({ query }),
     });
+    if (handleUnauthorized(response)) return null;
     if (!response.ok) {
       const error = await response.json();
       throw new Error(error.error || 'Товар не найден на Wildberries');
@@ -118,6 +152,7 @@ export const api = {
       },
       body: JSON.stringify({ url }),
     });
+    if (handleUnauthorized(response)) return null;
     if (!response.ok) {
       const error = await response.json();
       throw new Error(error.error || 'Не удалось получить данные о товаре');
@@ -136,6 +171,7 @@ export const api = {
       },
       body: JSON.stringify({ is_active: isActive }),
     });
+    if (handleUnauthorized(response)) return null;
     if (!response.ok) {
       const error = await response.json();
       throw new Error(error.detail || 'Ошибка обновления статуса');

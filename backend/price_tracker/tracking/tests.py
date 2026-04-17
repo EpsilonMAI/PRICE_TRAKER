@@ -69,6 +69,36 @@ class UpdatePriceHistoryCommandTests(TestCase):
         self.assertEqual(str(latest_history.old_price), "70000.00")
         self.assertEqual(latest_history.raw_payload, offer)
 
+    def test_successful_check_uses_saved_wb_url_when_available(self) -> None:
+        tracking_item = TrackingItems.objects.create(
+            user=self.user,
+            product=self.product,
+            store=self.wb_store,
+            source_url="https://www.wildberries.ru/catalog/555/detail.aspx",
+            is_active=True,
+        )
+
+        offer = {
+            "id": "555",
+            "name": "iPhone 16",
+            "brand": "Apple",
+            "price": 64990,
+            "old_price": 69990,
+            "url": "https://www.wildberries.ru/catalog/555/detail.aspx",
+            "in_stock": True,
+        }
+
+        with patch("tracking.services._fetch_wildberries_offer_by_url", return_value=offer) as parser_mock, \
+             patch("tracking.services._fetch_wildberries_offer") as search_mock:
+            call_command("update_price_history")
+
+        tracking_item.refresh_from_db()
+
+        parser_mock.assert_called_once_with("https://www.wildberries.ru/catalog/555/detail.aspx")
+        search_mock.assert_not_called()
+        self.assertEqual(tracking_item.last_status, "success")
+        self.assertEqual(tracking_item.price_history.count(), 1)
+
     def test_unsupported_store_updates_status_without_history(self) -> None:
         ozon_store = Stores.objects.create(
             name="Ozon",
@@ -159,9 +189,9 @@ class TrackingItemHistoryApiTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["product_name"], "MacBook Air")
         self.assertEqual(response.data["store_name"], "Wildberries")
-        self.assertEqual(response.data["current_price"], "97990.00")
-        self.assertEqual(response.data["min_price"], "97990.00")
-        self.assertEqual(response.data["max_price"], "99990.00")
+        self.assertEqual(str(response.data["current_price"]), "97990.00")
+        self.assertEqual(str(response.data["min_price"]), "97990.00")
+        self.assertEqual(str(response.data["max_price"]), "99990.00")
         self.assertEqual(len(response.data["history_points"]), 2)
 
     def test_history_endpoint_is_available_only_for_owner(self) -> None:
@@ -169,3 +199,33 @@ class TrackingItemHistoryApiTests(TestCase):
         response = self.client.get(f"/api/tracking/{self.tracking_item.id}/history/")
 
         self.assertEqual(response.status_code, 404)
+
+    def test_manual_refresh_endpoint_updates_item_and_returns_serialized_item(self) -> None:
+        offer = {
+            "name": "MacBook Air",
+            "brand": "Apple",
+            "price": 95990,
+            "old_price": 97990,
+            "url": "https://www.wildberries.ru/catalog/987/detail.aspx",
+        }
+
+        with patch("tracking.services._fetch_wildberries_offer", return_value=offer):
+            response = self.client.post(f"/api/tracking/{self.tracking_item.id}/refresh/")
+
+        self.tracking_item.refresh_from_db()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["status"], "success")
+        self.assertEqual(str(response.data["item"]["current_price"]), "95990.00")
+        self.assertEqual(response.data["item"]["source_url"], offer["url"])
+        self.assertEqual(self.tracking_item.price_history.count(), 3)
+
+    def test_manual_refresh_endpoint_returns_400_for_parser_failure(self) -> None:
+        with patch(
+            "tracking.services._fetch_wildberries_offer",
+            side_effect=RuntimeError("wildberries is unavailable"),
+        ):
+            response = self.client.post(f"/api/tracking/{self.tracking_item.id}/refresh/")
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data["status"], "parser_error")

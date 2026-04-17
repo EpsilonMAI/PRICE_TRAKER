@@ -1,7 +1,7 @@
 """Views для управления отслеживанием товаров и их историей цен."""
 from datetime import timedelta
 
-from rest_framework import generics
+from rest_framework import generics, status
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -17,6 +17,18 @@ from .serializers import (
     UpdateTrackingItemSerializer,
     TrackingItemHistorySerializer,
 )
+from .services import refresh_tracking_item_price
+
+
+REFRESH_STATUS_MESSAGES = {
+    "success": "Цена успешно обновлена",
+    "store_missing": "Для товара не указан магазин",
+    "store_inactive": "Магазин сейчас неактивен",
+    "parser_disabled": "Парсер для этого магазина отключен",
+    "unsupported_store": "Для этого магазина ручное обновление пока не поддерживается",
+    "parser_error": "Не удалось получить цену из магазина",
+    "not_found": "Товар не найден в магазине",
+}
 
 
 class TrackingItemsAPIList(generics.ListAPIView):
@@ -133,3 +145,34 @@ class TrackingItemHistoryAPIView(generics.RetrieveAPIView):
 
         cutoff = timezone.now() - timedelta(days=period_map[period])
         return queryset.filter(collected_at__gte=cutoff)
+
+
+class RefreshTrackingItemAPIView(generics.GenericAPIView):
+    """API для ручного обновления цены одного товара."""
+
+    serializer_class = TrackingItemSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self) -> QuerySet[TrackingItems]:
+        return TrackingItems.objects.filter(user=self.request.user).select_related(
+            "user",
+            "product",
+            "store",
+        ).prefetch_related("price_history")
+
+    def post(self, request, *args, **kwargs):
+        tracking_item = get_object_or_404(self.get_queryset(), pk=kwargs["pk"])
+        result = refresh_tracking_item_price(tracking_item)
+        tracking_item.refresh_from_db()
+
+        response_payload = {
+            "status": result.status,
+            "history_created": result.history_created,
+            "message": REFRESH_STATUS_MESSAGES.get(result.status, "Не удалось обновить цену"),
+            "item": self.get_serializer(tracking_item).data,
+        }
+
+        if result.status != "success":
+            return Response(response_payload, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(response_payload, status=status.HTTP_200_OK)

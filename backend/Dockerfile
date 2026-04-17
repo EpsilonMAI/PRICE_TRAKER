@@ -27,7 +27,7 @@ RUN pip install --upgrade pip \
 COPY price_tracker ./price_tracker
 COPY docker ./docker
 
-RUN chmod +x /app/docker/entrypoint.sh
+RUN chmod +x /app/docker/entrypoint.sh /app/docker/scheduler.sh
 
 WORKDIR /app/price_tracker
 

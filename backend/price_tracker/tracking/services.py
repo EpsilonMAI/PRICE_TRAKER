@@ -71,6 +71,14 @@ def _fetch_wildberries_offer(query: str):
     return fetch_best_wb_offer(query)
 
 
+def _fetch_wildberries_offer_by_url(url: str):
+    """Лениво импортировать URL-парсер Wildberries для runtime-вызовов."""
+
+    from stores.wb_parser import fetch_wb_product_by_url
+
+    return fetch_wb_product_by_url(url)
+
+
 def refresh_tracking_item_price(tracking_item: TrackingItems) -> RefreshTrackingItemResult:
     """Проверить актуальную цену товара и добавить новую точку в историю."""
 
@@ -106,10 +114,14 @@ def refresh_tracking_item_price(tracking_item: TrackingItems) -> RefreshTracking
             status="unsupported_store",
         )
 
+    source_url = (tracking_item.source_url or "").strip()
     query = _get_wildberries_query(tracking_item)
 
     try:
-        offer = _fetch_wildberries_offer(query)
+        if "wildberries.ru/catalog/" in source_url:
+            offer = _fetch_wildberries_offer_by_url(source_url)
+        else:
+            offer = _fetch_wildberries_offer(query)
     except Exception:
         logger.exception(
             "Failed to update price history for TrackingItem(%s)",

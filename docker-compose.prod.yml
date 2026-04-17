@@ -38,6 +38,28 @@ services:
       - "8000"
     restart: unless-stopped
 
+  scheduler:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: price_tracker_scheduler_prod
+    entrypoint: ["sh", "/app/docker/entrypoint.sh"]
+    env_file:
+      - .env.prod
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DJANGO_MIGRATE_ON_START: "0"
+      DJANGO_COMMAND: sh /app/docker/scheduler.sh
+      PRICE_UPDATE_INTERVAL_SECONDS: ${PRICE_UPDATE_INTERVAL_SECONDS:-3600}
+    shm_size: '2gb'
+    security_opt:
+      - seccomp:unconfined
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
   caddy:
     build:
       context: .
