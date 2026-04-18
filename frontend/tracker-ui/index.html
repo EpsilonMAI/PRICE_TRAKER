@@ -4,21 +4,25 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PriceTracker</title>
+    <style>
+        [x-cloak] { display: none !important; }
+        body[data-app-ready="false"] { visibility: hidden; }
+    </style>
     <script>
-        if (!sessionStorage.getItem('visited')) {
-            // Первый заход на сайт — всегда показываем страницу «О нас»
+        if (!localStorage.getItem('access_token') && !localStorage.getItem('has_seen_about_page')) {
+            // Первый неавторизованный визит — показываем страницу «О нас»
             window.location.replace('/about.html');
         } else if (!localStorage.getItem('access_token')) {
-            // Уже видел сайт, но не авторизован — на страницу входа
+            // Уже знаком с сайтом, но не авторизован — сразу на вход
             window.location.replace('/login.html');
         }
     </script>
 </head>
-<body class="bg-gray-50 font-sans antialiased" x-data="trackingApp()" x-init="loadProducts()">
+<body data-app-ready="false" class="bg-gray-50 font-sans antialiased" x-data="trackingApp()" x-init="loadProducts()">
 
     <nav class="bg-white border-b border-gray-200 px-4 py-2.5">
         <div class="flex flex-wrap justify-between items-center mx-auto max-w-screen-xl">
-            <a href="/about.html" class="self-center text-xl font-semibold whitespace-nowrap">PriceTracker</a>
+            <a href="/index.html" class="self-center text-xl font-semibold whitespace-nowrap">PriceTracker</a>
             <div class="flex gap-3 items-center">
                 <a href="/profile.html" class="text-gray-700 hover:text-blue-700 font-medium text-sm px-4 py-2.5 transition">
                     Профиль
@@ -35,7 +39,7 @@
         <h1 class="text-3xl font-bold mb-8 text-gray-900">Мои товары</h1>
 
         <!-- Индикатор загрузки -->
-        <div x-show="loading" class="text-center py-8">
+        <div x-cloak x-show="showLoader" class="text-center py-8">
             <div class="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent"></div>
             <p class="mt-2 text-gray-600">Загрузка...</p>
         </div>
@@ -46,7 +50,7 @@
         </div>
 
         <!-- Пустой список -->
-        <div x-show="!loading && !error && products.length === 0" class="text-center py-16">
+        <div x-cloak x-show="!loading && !error && products.length === 0" class="text-center py-16">
             <svg class="mx-auto h-24 w-24 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
                       d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
@@ -62,16 +66,23 @@
             </button>
         </div>
 
-        <div x-show="!loading && !error && products.length > 0" class="grid grid-cols-1 items-start gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div x-cloak x-show="!loading && !error && products.length > 0" class="grid grid-cols-1 items-start gap-6 sm:grid-cols-2 lg:grid-cols-3">
             <template x-for="product in products" :key="product.id">
-                <div class="flex h-full flex-col self-start rounded-2xl border border-gray-200 bg-white px-5 pt-5 pb-[0.28rem] shadow-sm transition hover:shadow-md">
+                <div role="link"
+                     tabindex="0"
+                     @click="openProductCard(product.id)"
+                     @keydown.enter.prevent="openProductCard(product.id)"
+                    @keydown.space.prevent="openProductCard(product.id)"
+                     class="flex h-full cursor-pointer flex-col self-start rounded-2xl border border-gray-200 bg-white px-5 pt-5 pb-[0.28rem] shadow-sm transition hover:shadow-md">
                     <div class="relative min-h-[5.75rem] pr-32">
-                        <h5 class="max-w-full text-lg font-bold text-gray-900" x-text="product.product_name"></h5>
+                        <h3 @click.stop class="max-w-full text-left text-lg font-bold text-gray-900"
+                            x-text="product.product_name"></h3>
                         <div class="mt-2 min-h-[1.25rem] text-sm text-gray-500">
-                            <span x-show="product.custom_name" x-text="product.custom_name"></span>
+                            <span @click.stop x-show="product.custom_name" x-text="product.custom_name"></span>
                         </div>
                         <div class="absolute right-0 top-0 pl-4">
-                            <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-blue-100 text-blue-800"
+                            <span class="text-xs font-medium px-2 py-0.5 rounded-full border"
+                                  :class="getStoreBadgeClass(product)"
                                   x-text="product.store_name"></span>
                         </div>
                     </div>
@@ -79,9 +90,9 @@
                     <div class="mt-auto pt-0.5">
                         <div class="min-w-0" x-show="product.current_price">
                             <div class="flex min-w-0 items-end gap-3 leading-none">
-                                <span class="min-w-0 whitespace-nowrap text-[3rem] font-extrabold leading-[0.9] tracking-tight text-gray-900 lg:text-[2.75rem] 2xl:text-[3rem]"
+                                <span @click.stop class="min-w-0 whitespace-nowrap text-[3rem] font-extrabold leading-[0.9] tracking-tight text-gray-900 lg:text-[2.75rem] 2xl:text-[3rem]"
                                       x-text="formatPrice(product.current_price) + ' ₽'"></span>
-                                <span class="shrink-0 translate-y-[0.03rem] text-xs text-gray-400 line-through sm:text-sm"
+                                <span @click.stop class="shrink-0 translate-y-[0.03rem] text-xs text-gray-400 line-through sm:text-sm"
                                       x-show="product.last_old_price"
                                       x-text="formatPrice(product.last_old_price) + ' ₽'"></span>
                             </div>
@@ -89,7 +100,7 @@
 
                         <div class="mt-2">
                             <button type="button"
-                                @click="openHistory(product)"
+                                @click.stop="openHistory(product)"
                                 class="group relative block w-full rounded-2xl border border-slate-200 bg-slate-50/80 p-3 text-left transition hover:border-blue-300 hover:bg-blue-50">
                                 <div class="mb-2 flex items-center justify-between">
                                     <span class="text-[11px] font-medium uppercase tracking-[0.12em] text-slate-500">Цена</span>
@@ -128,14 +139,15 @@
                             <input type="checkbox" 
                                    :id="'active-' + product.id"
                                    :checked="product.is_active"
+                                   @click.stop
                                    @change="toggleActive(product)"
                                    class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500">
-                            <label :for="'active-' + product.id" class="ml-2 text-sm text-gray-700 cursor-pointer">
+                            <label :for="'active-' + product.id" @click.stop class="ml-2 text-sm text-gray-700 cursor-pointer">
                                 Активное отслеживание
                             </label>
                         </div>
                         <button type="button"
-                                @click="refreshProduct(product)"
+                                @click.stop="refreshProduct(product)"
                                 :disabled="isRefreshingProduct(product.id)"
                                 class="mx-3 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition hover:border-blue-300 hover:text-blue-600 disabled:cursor-not-allowed disabled:opacity-50"
                                 title="Обновить цену сейчас">

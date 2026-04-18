@@ -98,6 +98,118 @@ class TrackingItemSerializer(serializers.ModelSerializer):
         ]
 
 
+class TrackingItemDetailSerializer(serializers.ModelSerializer):
+    """Расширенный сериализатор для детальной карточки одного товара."""
+
+    product_name = serializers.CharField(source="product.name", read_only=True)
+    product_description = serializers.CharField(source="product.description", read_only=True)
+    product_brand = serializers.SerializerMethodField()
+    category_name = serializers.SerializerMethodField()
+    store_name = serializers.CharField(source="store.name", read_only=True)
+    store_base_url = serializers.CharField(source="store.base_url", read_only=True)
+    current_price = serializers.SerializerMethodField()
+    last_old_price = serializers.SerializerMethodField()
+    wb_wallet_price = serializers.SerializerMethodField()
+    price_updated_at = serializers.SerializerMethodField()
+    latest_in_stock = serializers.SerializerMethodField()
+    currency = serializers.SerializerMethodField()
+    history_count = serializers.SerializerMethodField()
+    all_time_min_price = serializers.SerializerMethodField()
+    all_time_max_price = serializers.SerializerMethodField()
+
+    class Meta:
+        model = TrackingItems
+        fields = (
+            "id",
+            "product",
+            "product_name",
+            "product_description",
+            "product_brand",
+            "category_name",
+            "store",
+            "store_name",
+            "store_base_url",
+            "source_url",
+            "custom_name",
+            "is_active",
+            "last_checked_at",
+            "last_success_at",
+            "last_status",
+            "created_at",
+            "updated_at",
+            "current_price",
+            "last_old_price",
+            "wb_wallet_price",
+            "price_updated_at",
+            "latest_in_stock",
+            "currency",
+            "history_count",
+            "all_time_min_price",
+            "all_time_max_price",
+        )
+
+    def _get_latest_history(self, obj: TrackingItems) -> Optional[PriceHistory]:
+        return obj.price_history.first()
+
+    def _get_latest_payload(self, obj: TrackingItems) -> Dict[str, Any]:
+        latest = self._get_latest_history(obj)
+        return latest.raw_payload or {} if latest else {}
+
+    def _get_prices(self, obj: TrackingItems) -> list[Decimal]:
+        return [point.price for point in obj.price_history.all() if point.price is not None]
+
+    def get_product_brand(self, obj: TrackingItems) -> str:
+        payload = self._get_latest_payload(obj)
+        return payload.get("brand") or obj.product.brand or ""
+
+    def get_category_name(self, obj: TrackingItems) -> str:
+        payload = self._get_latest_payload(obj)
+        return (
+            payload.get("category_name")
+            or payload.get("subject_name")
+            or getattr(obj.product.category, "name", "")
+            or ""
+        )
+
+    def get_current_price(self, obj: TrackingItems) -> Optional[Decimal]:
+        latest = self._get_latest_history(obj)
+        return latest.price if latest else None
+
+    def get_last_old_price(self, obj: TrackingItems) -> Optional[Decimal]:
+        latest = self._get_latest_history(obj)
+        return latest.old_price if latest else None
+
+    def get_wb_wallet_price(self, obj: TrackingItems) -> Optional[Decimal]:
+        payload = self._get_latest_payload(obj)
+        wallet_price = payload.get("wallet_price")
+        if wallet_price in (None, ""):
+            return None
+        return wallet_price
+
+    def get_price_updated_at(self, obj: TrackingItems) -> Optional[datetime]:
+        latest = self._get_latest_history(obj)
+        return latest.collected_at if latest else None
+
+    def get_latest_in_stock(self, obj: TrackingItems) -> bool:
+        latest = self._get_latest_history(obj)
+        return latest.in_stock if latest else False
+
+    def get_currency(self, obj: TrackingItems) -> str:
+        latest = self._get_latest_history(obj)
+        return latest.currency if latest and latest.currency else "RUB"
+
+    def get_history_count(self, obj: TrackingItems) -> int:
+        return len([point for point in obj.price_history.all() if point.price is not None])
+
+    def get_all_time_min_price(self, obj: TrackingItems) -> Optional[Decimal]:
+        prices = self._get_prices(obj)
+        return min(prices) if prices else None
+
+    def get_all_time_max_price(self, obj: TrackingItems) -> Optional[Decimal]:
+        prices = self._get_prices(obj)
+        return max(prices) if prices else None
+
+
 class PriceHistorySerializer(serializers.ModelSerializer):
     """Сериализатор для истории изменения цен.
     

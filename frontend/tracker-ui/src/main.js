@@ -4,10 +4,44 @@ import ApexCharts from 'apexcharts';
 import Alpine from 'alpinejs'
 import { api } from './api.js'
 
+window.addEventListener('load', () => {
+    document.body?.setAttribute('data-app-ready', 'true');
+});
+
 const sparklineSize = {
     width: 320,
     height: 72,
     padding: { top: 6, right: 2, bottom: 6, left: 2 },
+};
+
+const historyPeriodOptions = ['1', '7', '30', 'all'];
+const latestFeedVisibleCount = 3;
+const storeThemes = {
+    wildberries: {
+        badgeClass: 'border-fuchsia-200 bg-fuchsia-50 text-fuchsia-700',
+        sourceCardClass: 'border-fuchsia-200 bg-fuchsia-50 text-fuchsia-700 hover:border-fuchsia-300 hover:text-fuchsia-800',
+        sourceLabelClass: 'text-fuchsia-400',
+    },
+    ozon: {
+        badgeClass: 'border-sky-200 bg-sky-50 text-sky-700',
+        sourceCardClass: 'border-sky-200 bg-sky-50 text-sky-700 hover:border-sky-300 hover:text-sky-800',
+        sourceLabelClass: 'text-sky-400',
+    },
+    'яндекс маркет': {
+        badgeClass: 'border-amber-200 bg-amber-50 text-amber-700',
+        sourceCardClass: 'border-amber-200 bg-amber-50 text-amber-700 hover:border-amber-300 hover:text-amber-800',
+        sourceLabelClass: 'text-amber-500',
+    },
+    'yandex market': {
+        badgeClass: 'border-amber-200 bg-amber-50 text-amber-700',
+        sourceCardClass: 'border-amber-200 bg-amber-50 text-amber-700 hover:border-amber-300 hover:text-amber-800',
+        sourceLabelClass: 'text-amber-500',
+    },
+    default: {
+        badgeClass: 'border-slate-200 bg-white text-slate-500',
+        sourceCardClass: 'border-slate-200 bg-white text-slate-700 hover:border-blue-300 hover:text-blue-700',
+        sourceLabelClass: 'text-slate-400',
+    },
 };
 
 function normalizeHistoryPoints(points = []) {
@@ -121,11 +155,85 @@ function getTrendColors(points) {
     };
 }
 
+function aggregateHistoryPoints(points, bucketType) {
+    if (bucketType === 'raw') {
+        return points;
+    }
+
+    const buckets = new Map();
+
+    for (const point of points) {
+        const date = new Date(point.collected_at);
+        const key = bucketType === 'day'
+            ? `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`
+            : `${date.getFullYear()}-${date.getMonth()}-${Math.floor(date.getDate() / 7)}`;
+
+        const bucket = buckets.get(key) || {
+            prices: [],
+            in_stock: point.in_stock,
+            collected_at: point.collected_at,
+        };
+
+        bucket.prices.push(point.price);
+        bucket.in_stock = point.in_stock;
+        bucket.collected_at = point.collected_at;
+        buckets.set(key, bucket);
+    }
+
+    return [...buckets.values()].map((bucket) => ({
+        price: bucket.prices.reduce((sum, price) => sum + price, 0) / bucket.prices.length,
+        in_stock: bucket.in_stock,
+        collected_at: bucket.collected_at,
+    }));
+}
+
+function getDistinctDayCount(points) {
+    return new Set(
+        points.map((point) => {
+            const date = new Date(point.collected_at);
+            return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+        })
+    ).size;
+}
+
+const trackingStatusMeta = {
+    success: {
+        label: 'Цена получена',
+        className: 'bg-emerald-100 text-emerald-700',
+    },
+    parser_error: {
+        label: 'Ошибка парсинга',
+        className: 'bg-rose-100 text-rose-700',
+    },
+    not_found: {
+        label: 'Товар не найден',
+        className: 'bg-amber-100 text-amber-700',
+    },
+    unsupported_store: {
+        label: 'Магазин не поддержан',
+        className: 'bg-slate-100 text-slate-600',
+    },
+    store_inactive: {
+        label: 'Магазин выключен',
+        className: 'bg-slate-100 text-slate-600',
+    },
+    parser_disabled: {
+        label: 'Парсер выключен',
+        className: 'bg-slate-100 text-slate-600',
+    },
+    store_missing: {
+        label: 'Магазин не указан',
+        className: 'bg-slate-100 text-slate-600',
+    },
+};
+
 // Компонент списка товаров
 window.trackingApp = function() {
     return {
         products: [],
         loading: true,
+        showLoader: false,
+        loadingTimer: null,
         error: null,
         showAddModal: false,
         addTab: 'manual',
@@ -174,21 +282,56 @@ window.trackingApp = function() {
             this.showAddModal = true;
         },
 
+        getProductLink(productId) {
+            return `/product.html?id=${productId}`;
+        },
+
+        openProductCard(productId) {
+            window.location.href = this.getProductLink(productId);
+        },
+
+        getStoreTheme(storeName) {
+            const normalizedStoreName = (storeName || '').trim().toLowerCase();
+            return storeThemes[normalizedStoreName] || storeThemes.default;
+        },
+
+        getStoreBadgeClass(product) {
+            return this.getStoreTheme(product?.store_name).badgeClass;
+        },
+
         closeAddModal() {
             this.showAddModal = false;
             this.resetAddModalState();
         },
+
+        startPageLoading() {
+            this.loading = true;
+            this.showLoader = false;
+            clearTimeout(this.loadingTimer);
+            this.loadingTimer = setTimeout(() => {
+                if (this.loading) {
+                    this.showLoader = true;
+                }
+            }, 450);
+        },
+
+        stopPageLoading() {
+            this.loading = false;
+            this.showLoader = false;
+            clearTimeout(this.loadingTimer);
+            this.loadingTimer = null;
+        },
         
         async loadProducts() {
             try {
-                this.loading = true;
+                this.startPageLoading();
                 this.products = await api.getProducts();
                 console.log('Загружено товаров:', this.products);
             } catch (err) {
                 this.error = err.message;
                 console.error('Ошибка:', err);
             } finally {
-                this.loading = false;
+                this.stopPageLoading();
             }
         },
         
@@ -551,6 +694,512 @@ window.trackingApp = function() {
     }
 }
 
+window.productCardApp = function() {
+    return {
+        itemId: null,
+        item: null,
+        history: null,
+        historyPeriodOptions,
+        loading: true,
+        showLoader: false,
+        loadingTimer: null,
+        error: null,
+        historyLoading: false,
+        historyError: null,
+        historyPeriod: '7',
+        historyChart: null,
+        refreshing: false,
+        chartRenderFrame: null,
+        itemRequestKey: 0,
+        historyRequestKey: 0,
+
+        async init() {
+            if (!localStorage.getItem('access_token')) {
+                window.location.href = '/login.html';
+                return;
+            }
+
+            const id = new URLSearchParams(window.location.search).get('id');
+            if (!id) {
+                window.location.href = '/index.html';
+                return;
+            }
+
+            this.itemId = id;
+            await this.loadItem();
+        },
+
+        startPageLoading() {
+            this.loading = true;
+            this.showLoader = false;
+            clearTimeout(this.loadingTimer);
+            this.loadingTimer = setTimeout(() => {
+                if (this.loading) {
+                    this.showLoader = true;
+                }
+            }, 450);
+        },
+
+        stopPageLoading() {
+            this.loading = false;
+            this.showLoader = false;
+            clearTimeout(this.loadingTimer);
+            this.loadingTimer = null;
+        },
+
+        async loadItem() {
+            const requestKey = ++this.itemRequestKey;
+            const period = this.historyPeriod;
+
+            try {
+                this.startPageLoading();
+                this.error = null;
+                this.historyError = null;
+
+                const [item, history] = await Promise.all([
+                    api.getTrackingItem(this.itemId),
+                    api.getProductHistory(this.itemId, period),
+                ]);
+
+                if (requestKey !== this.itemRequestKey) {
+                    return;
+                }
+
+                this.item = item;
+                this.history = history;
+            } catch (error) {
+                if (requestKey !== this.itemRequestKey) {
+                    return;
+                }
+                this.error = error.message;
+            } finally {
+                if (requestKey === this.itemRequestKey) {
+                    this.stopPageLoading();
+                }
+            }
+
+            if (requestKey === this.itemRequestKey) {
+                this.scheduleHistoryChartRender();
+            }
+        },
+
+        async changeHistoryPeriod(period) {
+            if (this.historyPeriod === period) {
+                return;
+            }
+
+            this.historyPeriod = period;
+            this.historyError = null;
+            this.destroyHistoryChart();
+            await this.loadHistory(period);
+        },
+
+        async loadHistory(period = this.historyPeriod) {
+            const requestKey = ++this.historyRequestKey;
+
+            try {
+                this.historyLoading = true;
+                this.historyError = null;
+                const history = await api.getProductHistory(this.itemId, period);
+
+                if (requestKey !== this.historyRequestKey || period !== this.historyPeriod) {
+                    return;
+                }
+
+                this.history = history;
+            } catch (error) {
+                if (requestKey !== this.historyRequestKey || period !== this.historyPeriod) {
+                    return;
+                }
+                this.historyError = error.message;
+                this.destroyHistoryChart();
+            } finally {
+                if (requestKey === this.historyRequestKey && period === this.historyPeriod) {
+                    this.historyLoading = false;
+                }
+            }
+
+            if (requestKey === this.historyRequestKey && period === this.historyPeriod) {
+                this.scheduleHistoryChartRender();
+            }
+        },
+
+        async refreshProduct() {
+            if (this.refreshing) {
+                return;
+            }
+
+            try {
+                this.refreshing = true;
+                this.error = null;
+                await api.refreshProductPrice(this.itemId);
+                await this.loadItem();
+            } catch (error) {
+                this.error = error.message;
+            } finally {
+                this.refreshing = false;
+            }
+        },
+
+        async toggleActive() {
+            if (!this.item) {
+                return;
+            }
+
+            const nextValue = !this.item.is_active;
+            this.item.is_active = nextValue;
+
+            try {
+                await api.toggleProductActive(this.item.id, nextValue);
+            } catch (error) {
+                this.item.is_active = !nextValue;
+                this.error = error.message;
+            }
+        },
+
+        getTitle() {
+            return this.item?.custom_name || this.item?.product_name || 'Карточка товара';
+        },
+
+        getSubtitle() {
+            if (!this.item?.custom_name || !this.item?.product_name) {
+                return '';
+            }
+
+            return this.item.product_name;
+        },
+
+        getStatusMeta() {
+            return trackingStatusMeta[this.item?.last_status] || {
+                label: this.item?.last_status ? this.item.last_status : 'Статус неизвестен',
+                className: 'bg-slate-100 text-slate-600',
+            };
+        },
+
+        getStoreTheme() {
+            const storeName = (this.item?.store_name || '').trim().toLowerCase();
+            return storeThemes[storeName] || storeThemes.default;
+        },
+
+        getSavingsAmount() {
+            if (!this.item?.current_price || !this.item?.wb_wallet_price) {
+                return null;
+            }
+
+            return Number(this.item.current_price) - Number(this.item.wb_wallet_price);
+        },
+
+        hasWalletPrice() {
+            if (!this.item?.wb_wallet_price || !this.item?.current_price) {
+                return false;
+            }
+
+            return Number(this.item.wb_wallet_price) < Number(this.item.current_price);
+        },
+
+        getHistoryPoints() {
+            const points = this.getRawHistoryPoints();
+
+            if (this.historyPeriod === '1') {
+                return aggregateHistoryPoints(points, 'raw');
+            }
+
+            if (this.historyPeriod === '7' || this.historyPeriod === '30') {
+                return aggregateHistoryPoints(points, 'day');
+            }
+
+            const dayPoints = aggregateHistoryPoints(points, 'day');
+            return dayPoints.length >= 2 ? dayPoints : points;
+        },
+
+        getRawHistoryPoints() {
+            return normalizeHistoryPoints(this.history?.history_points);
+        },
+
+        hasHistory() {
+            return this.getHistoryPoints().length >= 2;
+        },
+
+        getHistorySeries() {
+            return this.getHistoryPoints().map((point) => point.price);
+        },
+
+        getTrendMeta() {
+            return getTrendColors(this.getHistoryPoints());
+        },
+
+        getRecentHistoryPoints() {
+            return [...this.getRawHistoryPoints()].reverse();
+        },
+
+        destroyHistoryChart() {
+            if (this.chartRenderFrame) {
+                cancelAnimationFrame(this.chartRenderFrame);
+                this.chartRenderFrame = null;
+            }
+            if (this.historyChart) {
+                this.historyChart.destroy();
+                this.historyChart = null;
+            }
+        },
+
+        scheduleHistoryChartRender() {
+            this.$nextTick(() => {
+                if (this.chartRenderFrame) {
+                    cancelAnimationFrame(this.chartRenderFrame);
+                }
+
+                this.chartRenderFrame = requestAnimationFrame(() => {
+                    this.chartRenderFrame = requestAnimationFrame(() => {
+                        this.renderHistoryChart();
+                    });
+                });
+            });
+        },
+
+        formatHistoryAxisDate(timestamp) {
+            const date = new Date(timestamp);
+            if (this.historyPeriod === '1') {
+                return new Intl.DateTimeFormat('ru-RU', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                }).format(date);
+            }
+
+            return new Intl.DateTimeFormat('ru-RU', {
+                day: '2-digit',
+                month: 'short',
+            }).format(date);
+        },
+
+        getHistoryPeriodLabel(period) {
+            if (period === '1') return '1 дн.';
+            if (period === '7') return '7 дн.';
+            if (period === '30') return '30 дн.';
+            return 'Все';
+        },
+
+        getHistoryAggregationHint() {
+            if (this.historyPeriod === '1') {
+                return 'Показываются отдельные замеры внутри последних суток.';
+            }
+
+            if (this.historyPeriod === '7' || this.historyPeriod === '30') {
+                return 'Каждая точка показывает среднюю цену за день.';
+            }
+
+            return 'Для полного периода график агрегируется по дням.';
+        },
+
+        getHistoryChartHeight() {
+            return 560;
+        },
+
+        getLatestFeedMaxHeight() {
+            return 318;
+        },
+
+        getLatestFeedBadge() {
+            return `${Math.min(this.getRecentHistoryPoints().length, latestFeedVisibleCount)} из ${this.getRecentHistoryPoints().length}`;
+        },
+
+        getLatestFeedViewportClass() {
+            return 'max-h-[318px]';
+        },
+
+        renderHistoryChart() {
+            this.destroyHistoryChart();
+
+            if (!this.hasHistory() || !this.$refs.productHistoryChart) {
+                return;
+            }
+
+            const historyPoints = this.getHistoryPoints();
+            const trendColors = this.getTrendMeta();
+            const prices = historyPoints.map((point) => point.price);
+            const minPrice = Math.min(...prices);
+            const maxPrice = Math.max(...prices);
+            const hasRange = maxPrice !== minPrice;
+            const pricePadding = hasRange
+                ? Math.max((maxPrice - minPrice) * 0.12, 35)
+                : Math.max(maxPrice * 0.02, 20);
+            const series = this.getHistorySeries();
+            const categories = historyPoints.map((point) => this.formatHistoryAxisDate(point.collected_at));
+
+            this.historyChart = new ApexCharts(this.$refs.productHistoryChart, {
+                chart: {
+                    type: 'area',
+                    height: this.getHistoryChartHeight(),
+                    toolbar: { show: false },
+                    zoom: { enabled: false },
+                    animations: { easing: 'easeinout', speed: 380 },
+                    fontFamily: 'inherit',
+                    parentHeightOffset: 0,
+                },
+                series: [{
+                    name: 'Цена',
+                    data: series,
+                }],
+                colors: [trendColors.stroke],
+                stroke: {
+                    curve: 'straight',
+                    width: 3,
+                },
+                fill: {
+                    type: 'gradient',
+                    gradient: {
+                        shadeIntensity: 1,
+                        opacityFrom: 0.24,
+                        opacityTo: 0.04,
+                        stops: [0, 95, 100],
+                    },
+                },
+                markers: {
+                    size: 4,
+                    strokeWidth: 3,
+                    strokeColors: '#ffffff',
+                    hover: {
+                        size: 6,
+                    },
+                },
+                dataLabels: {
+                    enabled: false,
+                },
+                grid: {
+                    borderColor: '#dbeafe',
+                    strokeDashArray: 5,
+                    padding: {
+                        left: 4,
+                        right: 6,
+                        top: 0,
+                        bottom: -6,
+                    },
+                },
+                xaxis: {
+                    type: 'category',
+                    categories,
+                    labels: {
+                        rotate: 0,
+                        hideOverlappingLabels: true,
+                        style: {
+                            colors: '#94a3b8',
+                            fontSize: '12px',
+                        },
+                    },
+                    axisBorder: {
+                        show: false,
+                    },
+                    axisTicks: {
+                        show: false,
+                    },
+                    tooltip: {
+                        enabled: false,
+                    },
+                },
+                yaxis: {
+                    opposite: true,
+                    min: Math.max(0, Math.floor(minPrice - pricePadding)),
+                    max: Math.ceil(maxPrice + pricePadding),
+                    tickAmount: 4,
+                    labels: {
+                        style: {
+                            colors: '#94a3b8',
+                            fontSize: '12px',
+                        },
+                        formatter: (value) => `${this.formatPrice(value)} ₽`,
+                    },
+                },
+                tooltip: {
+                    shared: false,
+                    intersect: true,
+                    x: {
+                        formatter: (_value, { dataPointIndex }) => {
+                            const point = historyPoints[dataPointIndex];
+                            if (!point) {
+                                return '';
+                            }
+
+                            if (this.historyPeriod === '1') {
+                                return this.formatDateTime(point.collected_at);
+                            }
+
+                            return new Intl.DateTimeFormat('ru-RU', {
+                                day: '2-digit',
+                                month: 'long',
+                            }).format(new Date(point.collected_at));
+                        },
+                    },
+                    y: {
+                        formatter: (value) => `${this.formatPrice(value)} ₽`,
+                    },
+                },
+            });
+
+            this.historyChart.render();
+        },
+
+        formatPrice(value) {
+            if (value === null || value === undefined || value === '') {
+                return '—';
+            }
+
+            return new Intl.NumberFormat('ru-RU', {
+                maximumFractionDigits: 2,
+            }).format(Number(value));
+        },
+
+        formatShortDate(dateString) {
+            if (!dateString) return '';
+            return new Date(dateString).toLocaleDateString('ru-RU', {
+                day: '2-digit',
+                month: 'short',
+            });
+        },
+
+        formatDateTime(dateString) {
+            if (!dateString) return '—';
+            return new Date(dateString).toLocaleString('ru-RU', {
+                day: '2-digit',
+                month: 'long',
+                hour: '2-digit',
+                minute: '2-digit',
+            });
+        },
+
+        formatCompactDateTime(dateString) {
+            if (!dateString) return '—';
+            return new Date(dateString).toLocaleString('ru-RU', {
+                day: '2-digit',
+                month: 'short',
+                hour: '2-digit',
+                minute: '2-digit',
+            }).replace('.', '');
+        },
+
+        getSourceHostname() {
+            if (!this.item?.source_url) {
+                return 'Ссылка не указана';
+            }
+
+            try {
+                return new URL(this.item.source_url).hostname.replace('www.', '');
+            } catch {
+                return this.item.source_url;
+            }
+        },
+
+        getTrackingStateLabel() {
+            return this.item?.is_active ? 'Автообновление включено' : 'Автообновление на паузе';
+        },
+
+        getTrackingStateDescription() {
+            return this.item?.is_active
+                ? 'Товар участвует в плановых проверках цены.'
+                : 'Фоновые проверки остановлены, но ручное обновление доступно.';
+        },
+    };
+}
+
 // Компонент регистрации
 window.registerApp = function() {
     return {
@@ -566,7 +1215,7 @@ window.registerApp = function() {
         init() {
             // Перенаправить если уже залогинен
             if (localStorage.getItem('access_token')) {
-                window.location.href = '/profile.html';
+                window.location.href = '/index.html';
             }
         },
         
@@ -582,9 +1231,9 @@ window.registerApp = function() {
                 localStorage.setItem('access_token', response.tokens.access);
                 localStorage.setItem('refresh_token', response.tokens.refresh);
                 
-                // Перенаправляем в профиль
+                // После регистрации отправляем сразу в каталог товаров
                 setTimeout(() => {
-                    window.location.href = '/profile.html';
+                    window.location.href = '/index.html';
                 }, 1500);
             } catch (err) {
                 this.error = err.message;
@@ -608,7 +1257,7 @@ window.loginApp = function() {
         init() {
             // Перенаправить если уже залогинен
             if (localStorage.getItem('access_token')) {
-                window.location.href = '/profile.html';
+                window.location.href = '/index.html';
             }
         },
         
@@ -620,7 +1269,7 @@ window.loginApp = function() {
                 const response = await api.login(this.formData);
                 localStorage.setItem('access_token', response.access);
                 localStorage.setItem('refresh_token', response.refresh);
-                window.location.href = '/profile.html';
+                window.location.href = '/index.html';
             } catch (err) {
                 this.error = err.message;
             } finally {

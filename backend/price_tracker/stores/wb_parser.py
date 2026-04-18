@@ -82,6 +82,14 @@ def fetch_wb_product_by_url(url: str) -> dict | None:
         sizes = product.get("sizes", [])
         price = None
         old_price = None
+        wallet_price = None
+        category_name = (
+            product.get("subjectName")
+            or product.get("subject")
+            or product.get("entity")
+            or product.get("kindName")
+            or ""
+        )
 
         for size in sizes:
             price_data = size.get("price", {})
@@ -91,9 +99,12 @@ def fetch_wb_product_by_url(url: str) -> dict | None:
             #     price.basic   = оригинальная (зачёркнутая) цена в копейках
             product_price = price_data.get("product")
             basic_price = price_data.get("basic")
+            total_price = price_data.get("total")
             if product_price:
                 price = product_price // 100
                 old_price = basic_price // 100 if basic_price else price
+                if total_price and total_price < product_price:
+                    wallet_price = total_price // 100
                 break
 
         if price is None:
@@ -106,8 +117,10 @@ def fetch_wb_product_by_url(url: str) -> dict | None:
             "id": article,
             "name": name,
             "brand": brand,
+            "category_name": category_name,
             "price": price,
             "old_price": old_price,
+            "wallet_price": wallet_price,
             "in_stock": in_stock,
             "url": url,
         }

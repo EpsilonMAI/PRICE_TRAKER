@@ -5,11 +5,20 @@ from typing import Optional
 
 from django.utils import timezone
 
+from items.models import Categories
 from .models import PriceHistory, TrackingItems
 
 
 WB_STORE_NAMES = {"wildberries"}
 logger = logging.getLogger(__name__)
+
+
+def _resolve_category(category_name: str | None):
+    normalized = (category_name or "").strip()
+    if not normalized:
+        return None
+    category, _ = Categories.objects.get_or_create(name=normalized)
+    return category
 
 
 @dataclass(frozen=True)
@@ -139,6 +148,22 @@ def refresh_tracking_item_price(tracking_item: TrackingItems) -> RefreshTracking
             checked_at=checked_at,
             status="not_found",
         )
+
+    product = tracking_item.product
+    product_update_fields = []
+    offer_brand = (offer.get("brand") or "").strip()
+    offer_category = _resolve_category(offer.get("category_name"))
+
+    if offer_brand and product.brand != offer_brand:
+        product.brand = offer_brand
+        product_update_fields.append("brand")
+
+    if offer_category and product.category_id != offer_category.id:
+        product.category = offer_category
+        product_update_fields.append("category")
+
+    if product_update_fields:
+        product.save(update_fields=product_update_fields)
 
     PriceHistory.objects.create(
         tracking_item=tracking_item,

@@ -5,12 +5,21 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from items.models import Categories
 from items.models import Products
 from stores.models import Stores
 from tracking.models import PriceHistory, TrackingItems
 
 
 logger = logging.getLogger(__name__)
+
+
+def _resolve_category(category_name: str | None):
+    normalized = (category_name or "").strip()
+    if not normalized:
+        return None
+    category, _ = Categories.objects.get_or_create(name=normalized)
+    return category
 
 
 class WBParserByURLView(APIView):
@@ -48,8 +57,22 @@ class WBParserByURLView(APIView):
 
         product, _ = Products.objects.get_or_create(
             name=product_data["name"],
-            defaults={"brand": product_data.get("brand", "")},
+            defaults={
+                "brand": product_data.get("brand", ""),
+                "category": _resolve_category(product_data.get("category_name")),
+            },
         )
+
+        updated_fields = []
+        if product_data.get("brand") and product.brand != product_data["brand"]:
+            product.brand = product_data["brand"]
+            updated_fields.append("brand")
+        parsed_category = _resolve_category(product_data.get("category_name"))
+        if parsed_category and product.category_id != parsed_category.id:
+            product.category = parsed_category
+            updated_fields.append("category")
+        if updated_fields:
+            product.save(update_fields=updated_fields)
 
         track_item, created = TrackingItems.objects.get_or_create(
             user=user,
@@ -66,6 +89,7 @@ class WBParserByURLView(APIView):
             price=product_data["price"],
             old_price=product_data.get("old_price"),
             in_stock=product_data.get("in_stock", True),
+            raw_payload=product_data,
         )
 
         logger.info(
@@ -109,8 +133,22 @@ class WBParserView(APIView):
 
         product, _ = Products.objects.get_or_create(
             name=best_offer["name"],
-            defaults={"brand": best_offer["brand"]},
+            defaults={
+                "brand": best_offer.get("brand", ""),
+                "category": _resolve_category(best_offer.get("category_name")),
+            },
         )
+
+        updated_fields = []
+        if best_offer.get("brand") and product.brand != best_offer["brand"]:
+            product.brand = best_offer["brand"]
+            updated_fields.append("brand")
+        parsed_category = _resolve_category(best_offer.get("category_name"))
+        if parsed_category and product.category_id != parsed_category.id:
+            product.category = parsed_category
+            updated_fields.append("category")
+        if updated_fields:
+            product.save(update_fields=updated_fields)
 
         track_item, created = TrackingItems.objects.get_or_create(
             user=user,
@@ -128,6 +166,7 @@ class WBParserView(APIView):
                 price=best_offer["price"],
                 old_price=best_offer["old_price"],
                 in_stock=True,
+                raw_payload=best_offer,
             )
 
         return Response({
@@ -136,4 +175,3 @@ class WBParserView(APIView):
             "tracking_item_id": track_item.id,
             "is_new": created,
         })
-

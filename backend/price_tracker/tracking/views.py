@@ -12,6 +12,7 @@ from django.utils import timezone
 from .models import TrackingItems, PriceHistory
 from .serializers import (
     TrackingItemSerializer, 
+    TrackingItemDetailSerializer,
     PriceHistorySerializer, 
     AddItemToUserTrack, 
     UpdateTrackingItemSerializer,
@@ -91,13 +92,12 @@ class AddItemToTrackAPIView(generics.CreateAPIView):
         serializer.save(user=self.request.user)
 
 
-class UpdateTrackingItemAPIView(generics.UpdateAPIView):
+class UpdateTrackingItemAPIView(generics.RetrieveUpdateAPIView):
     """API для обновления параметров отслеживания товара.
     
     Позволяет изменять is_active (вкл/выкл отслеживание) и custom_name.
     Пользователь может обновлять только свои товары.
     """
-    serializer_class = UpdateTrackingItemSerializer
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self) -> QuerySet[TrackingItems]:
@@ -106,7 +106,16 @@ class UpdateTrackingItemAPIView(generics.UpdateAPIView):
         Returns:
             QuerySet[TrackingItems]: Только товары текущего пользователя
         """
-        return TrackingItems.objects.filter(user=self.request.user)
+        return TrackingItems.objects.filter(user=self.request.user).select_related(
+            "product",
+            "product__category",
+            "store",
+        ).prefetch_related("price_history")
+
+    def get_serializer_class(self):
+        if self.request.method == "GET":
+            return TrackingItemDetailSerializer
+        return UpdateTrackingItemSerializer
 
 
 class TrackingItemHistoryAPIView(generics.RetrieveAPIView):
@@ -135,13 +144,14 @@ class TrackingItemHistoryAPIView(generics.RetrieveAPIView):
             return queryset
 
         period_map = {
+            "1": 1,
             "7": 7,
             "30": 30,
             "90": 90,
         }
 
         if period not in period_map:
-            raise ValidationError({"period": "Допустимые значения: 7, 30, 90, all"})
+            raise ValidationError({"period": "Допустимые значения: 1, 7, 30, 90, all"})
 
         cutoff = timezone.now() - timedelta(days=period_map[period])
         return queryset.filter(collected_at__gte=cutoff)

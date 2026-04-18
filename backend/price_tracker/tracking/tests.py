@@ -181,6 +181,11 @@ class TrackingItemHistoryApiTests(TestCase):
             tracking_item=self.tracking_item,
             price="97990.00",
             old_price="99990.00",
+            raw_payload={
+                "brand": "Apple",
+                "category_name": "Ультрабуки",
+                "wallet_price": 95990,
+            },
         )
 
     def test_history_endpoint_returns_summary_and_points(self) -> None:
@@ -194,9 +199,34 @@ class TrackingItemHistoryApiTests(TestCase):
         self.assertEqual(str(response.data["max_price"]), "99990.00")
         self.assertEqual(len(response.data["history_points"]), 2)
 
+    def test_history_endpoint_supports_one_day_period(self) -> None:
+        response = self.client.get(f"/api/tracking/{self.tracking_item.id}/history/?period=1")
+
+        self.assertEqual(response.status_code, 200)
+
     def test_history_endpoint_is_available_only_for_owner(self) -> None:
         self.client.force_authenticate(user=self.other_user)
         response = self.client.get(f"/api/tracking/{self.tracking_item.id}/history/")
+
+        self.assertEqual(response.status_code, 404)
+
+    def test_tracking_item_detail_endpoint_returns_card_data(self) -> None:
+        response = self.client.get(f"/api/tracking/{self.tracking_item.id}/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["product_name"], "MacBook Air")
+        self.assertEqual(response.data["store_name"], "Wildberries")
+        self.assertEqual(str(response.data["current_price"]), "97990.00")
+        self.assertEqual(str(response.data["all_time_min_price"]), "97990.00")
+        self.assertEqual(str(response.data["all_time_max_price"]), "99990.00")
+        self.assertEqual(response.data["category_name"], "Ультрабуки")
+        self.assertEqual(str(response.data["wb_wallet_price"]), "95990")
+        self.assertEqual(response.data["history_count"], 2)
+        self.assertTrue(response.data["latest_in_stock"])
+
+    def test_tracking_item_detail_endpoint_is_available_only_for_owner(self) -> None:
+        self.client.force_authenticate(user=self.other_user)
+        response = self.client.get(f"/api/tracking/{self.tracking_item.id}/")
 
         self.assertEqual(response.status_code, 404)
 
