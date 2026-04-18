@@ -9,9 +9,9 @@ window.addEventListener('load', () => {
 });
 
 const sparklineSize = {
-    width: 320,
+    width: 352,
     height: 72,
-    padding: { top: 6, right: 2, bottom: 6, left: 2 },
+    padding: { top: 6, right: 0, bottom: 6, left: 0 },
 };
 
 const historyPeriodOptions = ['1', '7', '30', 'all'];
@@ -972,6 +972,22 @@ window.productCardApp = function() {
             }).format(date);
         },
 
+        getHistoryLabelStep(pointCount) {
+            if (pointCount <= 2) {
+                return 1;
+            }
+
+            if (this.historyPeriod === '1') {
+                return Math.max(1, Math.ceil(pointCount / 6));
+            }
+
+            if (this.historyPeriod === '7') {
+                return Math.max(1, Math.ceil(pointCount / 5));
+            }
+
+            return Math.max(1, Math.ceil(pointCount / 6));
+        },
+
         getHistoryPeriodLabel(period) {
             if (period === '1') return '1 дн.';
             if (period === '7') return '7 дн.';
@@ -1024,7 +1040,12 @@ window.productCardApp = function() {
                 ? Math.max((maxPrice - minPrice) * 0.12, 35)
                 : Math.max(maxPrice * 0.02, 20);
             const series = this.getHistorySeries();
-            const categories = historyPoints.map((point) => this.formatHistoryAxisDate(point.collected_at));
+            const labelStep = this.getHistoryLabelStep(historyPoints.length);
+            const categories = historyPoints.map((point, index) => {
+                const isEdgePoint = index === 0 || index === historyPoints.length - 1;
+                const shouldShowLabel = isEdgePoint || index % labelStep === 0;
+                return shouldShowLabel ? this.formatHistoryAxisDate(point.collected_at) : '';
+            });
 
             this.historyChart = new ApexCharts(this.$refs.productHistoryChart, {
                 chart: {
@@ -1080,7 +1101,7 @@ window.productCardApp = function() {
                     categories,
                     labels: {
                         rotate: 0,
-                        hideOverlappingLabels: true,
+                        hideOverlappingLabels: false,
                         style: {
                             colors: '#94a3b8',
                             fontSize: '12px',

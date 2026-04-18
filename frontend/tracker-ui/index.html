@@ -20,8 +20,8 @@
 </head>
 <body data-app-ready="false" class="bg-gray-50 font-sans antialiased" x-data="trackingApp()" x-init="loadProducts()">
 
-    <nav class="bg-white border-b border-gray-200 px-4 py-2.5">
-        <div class="flex flex-wrap justify-between items-center mx-auto max-w-screen-xl">
+    <nav class="border-b border-gray-200 bg-white py-2.5">
+        <div class="flex w-full flex-wrap items-center justify-between px-4 sm:px-6">
             <a href="/index.html" class="self-center text-xl font-semibold whitespace-nowrap">PriceTracker</a>
             <div class="flex gap-3 items-center">
                 <a href="/profile.html" class="text-gray-700 hover:text-blue-700 font-medium text-sm px-4 py-2.5 transition">
@@ -34,9 +34,9 @@
         </div>
     </nav>
 
-    <main class="p-8 max-w-screen-xl mx-auto">
+    <main class="w-full px-4 py-5 sm:px-6">
         
-        <h1 class="text-3xl font-bold mb-8 text-gray-900">Мои товары</h1>
+        <h1 class="mb-5 text-3xl font-bold text-gray-900">Мои товары</h1>
 
         <!-- Индикатор загрузки -->
         <div x-cloak x-show="showLoader" class="text-center py-8">
@@ -66,7 +66,9 @@
             </button>
         </div>
 
-        <div x-cloak x-show="!loading && !error && products.length > 0" class="grid grid-cols-1 items-start gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div x-cloak
+             x-show="!loading && !error && products.length > 0"
+             class="grid grid-cols-1 items-start gap-6 sm:grid-cols-[repeat(auto-fit,minmax(340px,1fr))]">
             <template x-for="product in products" :key="product.id">
                 <div role="link"
                      tabindex="0"
@@ -104,29 +106,31 @@
                                 class="group relative block w-full rounded-2xl border border-slate-200 bg-slate-50/80 p-3 text-left transition hover:border-blue-300 hover:bg-blue-50">
                                 <div class="mb-2 flex items-center justify-between">
                                     <span class="text-[11px] font-medium uppercase tracking-[0.12em] text-slate-500">Цена</span>
-                                    <span class="rounded-full px-2 py-0.5 text-[10px] font-semibold"
+                                    <span class="inline-flex min-w-[58px] items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold"
                                           :class="getSparklineBadgeClass(product)">
                                         История
                                     </span>
                                 </div>
 
                                 <template x-if="hasSparkline(product)">
-                                    <svg :viewBox="`0 0 320 72`"
-                                         preserveAspectRatio="none"
-                                         class="block h-[72px] w-[calc(100%+37px)] overflow-visible">
-                                         <path :d="buildSparklineAreaPath(product)"
-                                               :fill="getSparklineFill(product)"></path>
-                                        <path :d="buildSparklinePath(product)"
-                                              fill="none"
-                                              :stroke="getSparklineStroke(product)"
-                                              stroke-width="2.5"
-                                              stroke-linecap="round"
-                                              stroke-linejoin="round"></path>
-                                    </svg>
+                                    <div class="relative aspect-[320/72] w-full overflow-hidden">
+                                        <svg :viewBox="`0 0 320 72`"
+                                             preserveAspectRatio="none"
+                                             class="absolute inset-0 block h-full w-full">
+                                             <path :d="buildSparklineAreaPath(product)"
+                                                   :fill="getSparklineFill(product)"></path>
+                                            <path :d="buildSparklinePath(product)"
+                                                  fill="none"
+                                                  :stroke="getSparklineStroke(product)"
+                                                  stroke-width="2.5"
+                                                  stroke-linecap="round"
+                                                  stroke-linejoin="round"></path>
+                                        </svg>
+                                    </div>
                                 </template>
 
                                 <template x-if="!hasSparkline(product)">
-                                    <div class="flex h-[72px] items-center justify-center rounded-xl border border-dashed border-slate-200 bg-white text-center text-xs text-slate-400">
+                                    <div class="flex aspect-[320/72] w-full items-center justify-center rounded-xl border border-dashed border-slate-200 bg-white text-center text-xs text-slate-400">
                                         Недостаточно данных
                                     </div>
                                 </template>
@@ -134,7 +138,7 @@
                         </div>
                     </div>
 
-                    <div class="mt-2 flex items-center justify-between border-t border-gray-100 pt-2 pb-[0.28rem]">
+                    <div class="mt-2 flex items-center border-t border-gray-100 pt-2 pb-[0.28rem]">
                         <div class="flex items-center">
                             <input type="checkbox" 
                                    :id="'active-' + product.id"
@@ -146,21 +150,23 @@
                                 Активное отслеживание
                             </label>
                         </div>
-                        <button type="button"
-                                @click.stop="refreshProduct(product)"
-                                :disabled="isRefreshingProduct(product.id)"
-                                class="mx-3 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition hover:border-blue-300 hover:text-blue-600 disabled:cursor-not-allowed disabled:opacity-50"
-                                title="Обновить цену сейчас">
-                            <svg x-show="!isRefreshingProduct(product.id)" class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h5M20 20v-5h-5M19 9a7 7 0 00-12-2m-2 8a7 7 0 0012 2"></path>
-                            </svg>
-                            <svg x-show="isRefreshingProduct(product.id)" class="h-4 w-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v4m0 8v4m8-8h-4M8 12H4m11.314-5.314l-2.828 2.828M9.514 14.486l-2.828 2.828m0-10.828l2.828 2.828m5.657 5.657l2.828 2.828"></path>
-                            </svg>
-                        </button>
-                        <p class="ml-3 shrink-0 text-sm text-gray-400"
-                           x-show="product.price_updated_at"
-                           x-text="formatCardDateTime(product.price_updated_at)"></p>
+                        <div class="ml-auto flex items-center gap-3">
+                            <button type="button"
+                                    @click.stop="refreshProduct(product)"
+                                    :disabled="isRefreshingProduct(product.id)"
+                                    class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition hover:border-blue-300 hover:text-blue-600 disabled:cursor-not-allowed disabled:opacity-50"
+                                    title="Обновить цену сейчас">
+                                <svg x-show="!isRefreshingProduct(product.id)" class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h5M20 20v-5h-5M19 9a7 7 0 00-12-2m-2 8a7 7 0 0012 2"></path>
+                                </svg>
+                                <svg x-show="isRefreshingProduct(product.id)" class="h-4 w-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v4m0 8v4m8-8h-4M8 12H4m11.314-5.314l-2.828 2.828M9.514 14.486l-2.828 2.828m0-10.828l2.828 2.828m5.657 5.657l2.828 2.828"></path>
+                                </svg>
+                            </button>
+                            <p class="shrink-0 text-sm text-gray-400"
+                               x-show="product.price_updated_at"
+                               x-text="formatCardDateTime(product.price_updated_at)"></p>
+                        </div>
                     </div>
                 </div>
             </template>
