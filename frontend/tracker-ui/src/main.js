@@ -978,7 +978,7 @@ window.productCardApp = function() {
             }
 
             if (this.historyPeriod === '1') {
-                return Math.max(1, Math.ceil(pointCount / 6));
+                return 2;
             }
 
             if (this.historyPeriod === '7') {
