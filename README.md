@@ -161,6 +161,7 @@ PRICE_TRAKER/
 - `GET /api/detailedprod/` - Список отслеживаемых товаров
 - `POST /api/additem/` - Добавить товар в отслеживание
 - `PATCH /api/tracking/<id>/` - Обновить параметры отслеживания
+- `DELETE /api/tracking/<id>/` - Удалить товар из отслеживания
 
 ### Товары и магазины
 - `GET /api/products/` - Список товаров

@@ -116,6 +116,18 @@ export const api = {
     return response.json();
   },
 
+  async deleteTrackingItem(productId) {
+    const response = await authenticatedFetch(`${API_BASE_URL}/tracking/${productId}/`, {
+      method: 'DELETE',
+    });
+    if (response.status === 401) return null;
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.detail || 'Не удалось удалить товар из отслеживания');
+    }
+    return true;
+  },
+
   // Регистрация
   async register(userData) {
     const response = await fetch(`${API_BASE_URL}/register/`, {
@@ -219,6 +231,18 @@ export const api = {
     if (!response.ok) {
       const error = await response.json();
       throw new Error(error.detail || 'Ошибка обновления статуса');
+    }
+    return response.json();
+  },
+
+  async refreshProductPrice(productId) {
+    const response = await authenticatedFetch(`${API_BASE_URL}/tracking/${productId}/refresh/`, {
+      method: 'POST',
+    });
+    if (response.status === 401) return null;
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.message || error.detail || 'Не удалось обновить цену');
     }
     return response.json();
   },

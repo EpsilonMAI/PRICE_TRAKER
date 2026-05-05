@@ -256,6 +256,10 @@ window.trackingApp = function() {
         wbLoading: false,
         wbResult: null,
         wbError: null,
+        deleteModalOpen: false,
+        deleteLoading: false,
+        deleteError: null,
+        productPendingDelete: null,
         
         init() {
             // Проверить авторизацию
@@ -285,6 +289,10 @@ window.trackingApp = function() {
             return `/product.html?id=${productId}`;
         },
 
+        getProductTitle(product) {
+            return product?.custom_name || product?.product_name || 'товар';
+        },
+
         openProductCard(productId) {
             window.location.href = this.getProductLink(productId);
         },
@@ -301,6 +309,22 @@ window.trackingApp = function() {
         closeAddModal() {
             this.showAddModal = false;
             this.resetAddModalState();
+        },
+
+        openDeleteConfirm(product) {
+            this.productPendingDelete = product;
+            this.deleteError = null;
+            this.deleteModalOpen = true;
+        },
+
+        closeDeleteConfirm() {
+            if (this.deleteLoading) {
+                return;
+            }
+
+            this.deleteModalOpen = false;
+            this.deleteError = null;
+            this.productPendingDelete = null;
         },
 
         startPageLoading() {
@@ -361,6 +385,32 @@ window.trackingApp = function() {
                 console.error('Failed to toggle active status:', error);
                 product.is_active = !product.is_active;
                 this.error = 'Не удалось обновить статус отслеживания';
+            }
+        },
+
+        async deleteProduct() {
+            if (!this.productPendingDelete || this.deleteLoading) {
+                return;
+            }
+
+            const deletedProductId = this.productPendingDelete.id;
+            this.deleteLoading = true;
+            this.deleteError = null;
+
+            try {
+                await api.deleteTrackingItem(deletedProductId);
+                this.products = this.products.filter((product) => product.id !== deletedProductId);
+
+                if (this.selectedProduct?.id === deletedProductId) {
+                    this.closeHistory();
+                }
+
+                this.deleteModalOpen = false;
+                this.productPendingDelete = null;
+            } catch (error) {
+                this.deleteError = error.message;
+            } finally {
+                this.deleteLoading = false;
             }
         },
 

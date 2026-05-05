@@ -92,11 +92,11 @@ class AddItemToTrackAPIView(generics.CreateAPIView):
         serializer.save(user=self.request.user)
 
 
-class UpdateTrackingItemAPIView(generics.RetrieveUpdateAPIView):
+class UpdateTrackingItemAPIView(generics.RetrieveUpdateDestroyAPIView):
     """API для обновления параметров отслеживания товара.
     
     Позволяет изменять is_active (вкл/выкл отслеживание) и custom_name.
-    Пользователь может обновлять только свои товары.
+    Пользователь может получать, обновлять и удалять только свои товары.
     """
     permission_classes = [IsAuthenticated]
     

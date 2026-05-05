@@ -230,6 +230,29 @@ class TrackingItemHistoryApiTests(TestCase):
 
         self.assertEqual(response.status_code, 404)
 
+    def test_tracking_item_delete_endpoint_removes_owned_item_and_history(self) -> None:
+        response = self.client.delete(f"/api/tracking/{self.tracking_item.id}/")
+
+        self.assertEqual(response.status_code, 204)
+        self.assertFalse(TrackingItems.objects.filter(id=self.tracking_item.id).exists())
+        self.assertEqual(PriceHistory.objects.filter(tracking_item_id=self.tracking_item.id).count(), 0)
+
+    def test_tracking_item_delete_endpoint_is_available_only_for_owner(self) -> None:
+        self.client.force_authenticate(user=self.other_user)
+        response = self.client.delete(f"/api/tracking/{self.tracking_item.id}/")
+
+        self.assertEqual(response.status_code, 404)
+        self.assertTrue(TrackingItems.objects.filter(id=self.tracking_item.id).exists())
+        self.assertEqual(PriceHistory.objects.filter(tracking_item_id=self.tracking_item.id).count(), 2)
+
+    def test_tracking_item_delete_endpoint_requires_authentication(self) -> None:
+        self.client.force_authenticate(user=None)
+        response = self.client.delete(f"/api/tracking/{self.tracking_item.id}/")
+
+        self.assertEqual(response.status_code, 401)
+        self.assertTrue(TrackingItems.objects.filter(id=self.tracking_item.id).exists())
+        self.assertEqual(PriceHistory.objects.filter(tracking_item_id=self.tracking_item.id).count(), 2)
+
     def test_manual_refresh_endpoint_updates_item_and_returns_serialized_item(self) -> None:
         offer = {
             "name": "MacBook Air",
