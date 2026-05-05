@@ -1,10 +1,11 @@
 """Сериализаторы для отслеживания товаров и истории цен."""
 from typing import Dict, Any, Optional
 from decimal import Decimal
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from rest_framework import serializers
 from django.db import transaction
+from django.utils import timezone
 
 from .models import TrackingItems, PriceHistory
 from stores.models import Stores
@@ -84,9 +85,10 @@ class TrackingItemSerializer(serializers.ModelSerializer):
 
     def get_sparkline_points(self, obj: TrackingItems) -> list[Dict[str, Any]]:
         """Получить сокращенную историю цен для маленького графика в карточке."""
+        cutoff = timezone.now() - timedelta(days=7)
         history_points = [
             point for point in obj.price_history.all()
-            if point.price is not None
+            if point.price is not None and point.collected_at >= cutoff
         ][:12]
         history_points.reverse()
         return [
