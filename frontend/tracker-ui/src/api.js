@@ -89,8 +89,17 @@ async function authenticatedFetch(url, options = {}) {
 
 export const api = {
   // Получить все продукты
-  async getProducts() {
-    const response = await authenticatedFetch(`${API_BASE_URL}/detailedprod/`);
+  async getProducts(params = {}) {
+    const query = new URLSearchParams();
+
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        query.set(key, value);
+      }
+    });
+
+    const url = `${API_BASE_URL}/detailedprod/${query.toString() ? `?${query}` : ''}`;
+    const response = await authenticatedFetch(url);
     if (response.status === 401) return [];
     if (!response.ok) throw new Error('Failed to fetch products');
     return response.json();

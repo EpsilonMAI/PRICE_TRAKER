@@ -231,6 +231,14 @@ const trackingStatusMeta = {
 window.trackingApp = function() {
     return {
         products: [],
+        filters: {
+            store: '',
+            isActive: 'all',
+            search: '',
+            ordering: '-price_updated_at',
+        },
+        availableStores: [],
+        listRequestKey: 0,
         loading: true,
         showLoader: false,
         loadingTimer: null,
@@ -306,6 +314,87 @@ window.trackingApp = function() {
             return this.getStoreTheme(product?.store_name).badgeClass;
         },
 
+        getProductQueryParams() {
+            const params = {
+                ordering: this.filters.ordering,
+            };
+
+            if (this.filters.store) {
+                params.store = this.filters.store;
+            }
+
+            if (this.filters.isActive !== 'all') {
+                params.is_active = this.filters.isActive === 'active' ? 'true' : 'false';
+            }
+
+            const search = this.filters.search.trim();
+            if (search) {
+                params.search = search;
+            }
+
+            return params;
+        },
+
+        syncStoreOptions(products = []) {
+            const storeNames = new Set(this.availableStores);
+
+            products.forEach((product) => {
+                if (product.store_name) {
+                    storeNames.add(product.store_name);
+                }
+            });
+
+            this.availableStores = [...storeNames].sort((a, b) => a.localeCompare(b, 'ru'));
+        },
+
+        hasActiveFilters() {
+            return Boolean(
+                this.filters.store ||
+                this.filters.search.trim() ||
+                this.filters.isActive !== 'all'
+            );
+        },
+
+        resetProductFilters() {
+            this.filters = {
+                store: '',
+                isActive: 'all',
+                search: '',
+                ordering: '-price_updated_at',
+            };
+            this.loadProducts();
+        },
+
+        getProductListSummary() {
+            const count = this.products.length;
+            const productWord = this.getProductCountWord(count);
+
+            if (this.hasActiveFilters()) {
+                return `Найдено ${count} ${productWord}`;
+            }
+
+            return `${count} ${productWord} в отслеживании`;
+        },
+
+        getProductCountWord(count) {
+            const absCount = Math.abs(count) % 100;
+            const lastDigit = absCount % 10;
+
+            if (absCount > 10 && absCount < 20) {
+                return 'товаров';
+            }
+
+            if (lastDigit === 1) {
+                return 'товар';
+            }
+
+            if (lastDigit >= 2 && lastDigit <= 4) {
+                return 'товара';
+            }
+
+            return 'товаров';
+        },
+
         closeAddModal() {
             this.showAddModal = false;
             this.resetAddModalState();
@@ -346,15 +435,30 @@ window.trackingApp = function() {
         },
         
         async loadProducts() {
+            const requestKey = ++this.listRequestKey;
+
             try {
                 this.startPageLoading();
-                this.products = await api.getProducts();
+                this.error = null;
+                const products = await api.getProducts(this.getProductQueryParams());
+
+                if (requestKey !== this.listRequestKey) {
+                    return;
+                }
+
+                this.products = products;
+                this.syncStoreOptions(products);
                 console.log('Загружено товаров:', this.products);
             } catch (err) {
+                if (requestKey !== this.listRequestKey) {
+                    return;
+                }
                 this.error = err.message;
                 console.error('Ошибка:', err);
             } finally {
-                this.stopPageLoading();
+                if (requestKey === this.listRequestKey) {
+                    this.stopPageLoading();
+                }
             }
         },
         
@@ -378,12 +482,23 @@ window.trackingApp = function() {
         },
         
         async toggleActive(product) {
+            const previousValue = product.is_active;
+            const nextValue = !previousValue;
+            product.is_active = nextValue;
+
             try {
-                const updated = await api.toggleProductActive(product.id, !product.is_active);
+                const updated = await api.toggleProductActive(product.id, nextValue);
                 product.is_active = updated.is_active;
+
+                if (
+                    (this.filters.isActive === 'active' && !updated.is_active) ||
+                    (this.filters.isActive === 'paused' && updated.is_active)
+                ) {
+                    this.products = this.products.filter((item) => item.id !== product.id);
+                }
             } catch (error) {
                 console.error('Failed to toggle active status:', error);
-                product.is_active = !product.is_active;
+                product.is_active = previousValue;
                 this.error = 'Не удалось обновить статус отслеживания';
             }
         },
@@ -400,6 +515,7 @@ window.trackingApp = function() {
             try {
                 await api.deleteTrackingItem(deletedProductId);
                 this.products = this.products.filter((product) => product.id !== deletedProductId);
+                this.syncStoreOptions(this.products);
 
                 if (this.selectedProduct?.id === deletedProductId) {
                     this.closeHistory();
