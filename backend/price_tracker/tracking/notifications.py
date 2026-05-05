@@ -19,11 +19,16 @@ logger = logging.getLogger(__name__)
 
 
 def _get_user_rules(tracking_item: TrackingItems):
-    """Вернуть CustomRules пользователя или None."""
-    try:
-        return tracking_item.user.profile.custom_rules
-    except Exception:
-        return None
+    """Вернуть правила уведомлений пользователя, создав дефолтные при необходимости."""
+    from users.models import CustomRules, UserProfile
+
+    profile, _ = UserProfile.objects.get_or_create(user=tracking_item.user)
+
+    if profile.custom_rules_id is None:
+        profile.custom_rules = CustomRules.objects.create()
+        profile.save(update_fields=["custom_rules"])
+
+    return profile.custom_rules
 
 
 def _user_email(tracking_item: TrackingItems) -> str | None:

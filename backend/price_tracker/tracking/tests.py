@@ -8,6 +8,7 @@ from rest_framework.test import APIClient
 
 from items.models import Categories, Products
 from stores.models import Stores
+from users.models import CustomRules
 
 from .models import PriceHistory, TrackingItems
 
@@ -141,6 +142,78 @@ class UpdatePriceHistoryCommandTests(TestCase):
         self.assertEqual(tracking_item.last_status, "parser_error")
         self.assertIsNotNone(tracking_item.last_checked_at)
         self.assertIsNone(tracking_item.last_success_at)
+
+    def test_price_drop_notification_uses_previous_history_point(self) -> None:
+        self.user.email = "tester@example.com"
+        self.user.save(update_fields=["email"])
+        tracking_item = TrackingItems.objects.create(
+            user=self.user,
+            product=self.product,
+            store=self.wb_store,
+            source_url="https://www.wildberries.ru/catalog/555/detail.aspx",
+            is_active=True,
+        )
+        PriceHistory.objects.create(
+            tracking_item=tracking_item,
+            price="70000.00",
+            old_price="75000.00",
+            currency="RUB",
+            in_stock=True,
+        )
+
+        offer = {
+            "id": "555",
+            "name": "iPhone 16",
+            "brand": "Apple",
+            "price": 65000,
+            "old_price": 70000,
+            "url": "https://www.wildberries.ru/catalog/555/detail.aspx",
+            "in_stock": True,
+        }
+
+        with patch("tracking.services._fetch_wildberries_offer_by_url", return_value=offer), \
+             patch("tracking.notifications.send_mail") as send_mail_mock:
+            call_command("update_price_history")
+
+        send_mail_mock.assert_called_once()
+        self.assertIn("Цена снизилась", send_mail_mock.call_args.kwargs["subject"])
+        self.assertEqual(send_mail_mock.call_args.kwargs["recipient_list"], ["tester@example.com"])
+
+    def test_price_drop_notification_creates_default_rules_when_missing(self) -> None:
+        self.user.email = "tester@example.com"
+        self.user.save(update_fields=["email"])
+        self.user.profile.custom_rules = None
+        self.user.profile.save(update_fields=["custom_rules"])
+        tracking_item = TrackingItems.objects.create(
+            user=self.user,
+            product=self.product,
+            store=self.wb_store,
+            source_url="https://www.wildberries.ru/catalog/555/detail.aspx",
+            is_active=True,
+        )
+        PriceHistory.objects.create(
+            tracking_item=tracking_item,
+            price="70000.00",
+            in_stock=True,
+        )
+
+        offer = {
+            "id": "555",
+            "name": "iPhone 16",
+            "brand": "Apple",
+            "price": 65000,
+            "old_price": 70000,
+            "url": "https://www.wildberries.ru/catalog/555/detail.aspx",
+        }
+
+        with patch("tracking.services._fetch_wildberries_offer_by_url", return_value=offer), \
+             patch("tracking.notifications.send_mail") as send_mail_mock:
+            call_command("update_price_history")
+
+        self.user.profile.refresh_from_db()
+
+        send_mail_mock.assert_called_once()
+        self.assertIsInstance(self.user.profile.custom_rules, CustomRules)
 
 
 class TrackingItemsListApiTests(TestCase):

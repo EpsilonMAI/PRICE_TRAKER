@@ -165,6 +165,12 @@ def refresh_tracking_item_price(tracking_item: TrackingItems) -> RefreshTracking
     if product_update_fields:
         product.save(update_fields=product_update_fields)
 
+    prev_history = (
+        tracking_item.price_history.order_by("-collected_at")
+        .values("price", "in_stock")
+        .first()
+    )
+
     PriceHistory.objects.create(
         tracking_item=tracking_item,
         price=offer.get("price"),
@@ -180,11 +186,6 @@ def refresh_tracking_item_price(tracking_item: TrackingItems) -> RefreshTracking
     try:
         from .notifications import notify_price_drop, notify_back_in_stock
 
-        prev_history = (
-            tracking_item.price_history.order_by("-collected_at")
-            .values("price", "in_stock")
-            .first()
-        )
         prev_price = prev_history["price"] if prev_history else None
         was_out_of_stock = prev_history and not prev_history["in_stock"]
 
