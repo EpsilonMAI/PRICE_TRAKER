@@ -6,7 +6,7 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
-from django.db.models import QuerySet
+from django.db.models import DateTimeField, DecimalField, F, OuterRef, Q, QuerySet, Subquery
 from django.utils import timezone
 
 from .models import TrackingItems, PriceHistory
@@ -40,6 +40,29 @@ class TrackingItemsAPIList(generics.ListAPIView):
     """
     serializer_class = TrackingItemSerializer
     permission_classes = [IsAuthenticated]
+
+    ACTIVE_PARAM_VALUES = {
+        "true": True,
+        "1": True,
+        "yes": True,
+        "active": True,
+        "false": False,
+        "0": False,
+        "no": False,
+        "paused": False,
+        "inactive": False,
+    }
+
+    ORDERING_MAP = {
+        "price_updated_at": F("price_updated_at_sort").asc(nulls_last=True),
+        "-price_updated_at": F("price_updated_at_sort").desc(nulls_last=True),
+        "current_price": F("current_price_sort").asc(nulls_last=True),
+        "-current_price": F("current_price_sort").desc(nulls_last=True),
+        "updated_at": F("updated_at").asc(nulls_last=True),
+        "-updated_at": F("updated_at").desc(nulls_last=True),
+        "created_at": F("created_at").asc(nulls_last=True),
+        "-created_at": F("created_at").desc(nulls_last=True),
+    }
     
     def get_queryset(self) -> QuerySet[TrackingItems]:
         """Получить отфильтрованный QuerySet для текущего пользователя.
@@ -47,11 +70,60 @@ class TrackingItemsAPIList(generics.ListAPIView):
         Returns:
             QuerySet[TrackingItems]: Товары текущего пользователя с предзагрузкой связей
         """
-        return TrackingItems.objects.filter(
+        latest_history = PriceHistory.objects.filter(
+            tracking_item=OuterRef("pk"),
+            price__isnull=False,
+        ).order_by("-collected_at")
+
+        queryset = TrackingItems.objects.filter(
             user=self.request.user
+        ).annotate(
+            current_price_sort=Subquery(
+                latest_history.values("price")[:1],
+                output_field=DecimalField(max_digits=12, decimal_places=2),
+            ),
+            price_updated_at_sort=Subquery(
+                latest_history.values("collected_at")[:1],
+                output_field=DateTimeField(),
+            ),
         ).select_related(
             'user', 'product', 'store'
         ).prefetch_related('price_history')
+
+        params = self.request.query_params
+        store = params.get("store", "").strip()
+        search = params.get("search", "").strip()
+        active = params.get("is_active", "").strip().lower()
+        ordering = params.get("ordering", "").strip()
+
+        if store:
+            queryset = queryset.filter(store__name__iexact=store)
+
+        if search:
+            queryset = queryset.filter(
+                Q(product__name__icontains=search) |
+                Q(custom_name__icontains=search)
+            )
+
+        if active:
+            if active not in self.ACTIVE_PARAM_VALUES:
+                raise ValidationError({
+                    "is_active": "Допустимые значения: true, false, active, paused"
+                })
+            queryset = queryset.filter(is_active=self.ACTIVE_PARAM_VALUES[active])
+
+        if ordering:
+            if ordering not in self.ORDERING_MAP:
+                raise ValidationError({
+                    "ordering": (
+                        "Допустимые значения: price_updated_at, -price_updated_at, "
+                        "current_price, -current_price, updated_at, -updated_at, "
+                        "created_at, -created_at"
+                    )
+                })
+            queryset = queryset.order_by(self.ORDERING_MAP[ordering], "-created_at")
+
+        return queryset
 
 
 class UserTrackingItemsAPIList(generics.ListAPIView):
@@ -92,11 +164,11 @@ class AddItemToTrackAPIView(generics.CreateAPIView):
         serializer.save(user=self.request.user)
 
 
-class UpdateTrackingItemAPIView(generics.RetrieveUpdateAPIView):
+class UpdateTrackingItemAPIView(generics.RetrieveUpdateDestroyAPIView):
     """API для обновления параметров отслеживания товара.
     
     Позволяет изменять is_active (вкл/выкл отслеживание) и custom_name.
-    Пользователь может обновлять только свои товары.
+    Пользователь может получать, обновлять и удалять только свои товары.
     """
     permission_classes = [IsAuthenticated]
     

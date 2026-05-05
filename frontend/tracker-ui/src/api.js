@@ -89,8 +89,17 @@ async function authenticatedFetch(url, options = {}) {
 
 export const api = {
   // Получить все продукты
-  async getProducts() {
-    const response = await authenticatedFetch(`${API_BASE_URL}/detailedprod/`);
+  async getProducts(params = {}) {
+    const query = new URLSearchParams();
+
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        query.set(key, value);
+      }
+    });
+
+    const url = `${API_BASE_URL}/detailedprod/${query.toString() ? `?${query}` : ''}`;
+    const response = await authenticatedFetch(url);
     if (response.status === 401) return [];
     if (!response.ok) throw new Error('Failed to fetch products');
     return response.json();
@@ -114,6 +123,18 @@ export const api = {
       throw new Error(error.detail || 'Не удалось загрузить карточку товара');
     }
     return response.json();
+  },
+
+  async deleteTrackingItem(productId) {
+    const response = await authenticatedFetch(`${API_BASE_URL}/tracking/${productId}/`, {
+      method: 'DELETE',
+    });
+    if (response.status === 401) return null;
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.detail || 'Не удалось удалить товар из отслеживания');
+    }
+    return true;
   },
 
   // Регистрация
@@ -252,6 +273,18 @@ export const api = {
     if (!response.ok) {
       const error = await response.json();
       throw new Error(error.detail || 'Ошибка обновления статуса');
+    }
+    return response.json();
+  },
+
+  async refreshProductPrice(productId) {
+    const response = await authenticatedFetch(`${API_BASE_URL}/tracking/${productId}/refresh/`, {
+      method: 'POST',
+    });
+    if (response.status === 401) return null;
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.message || error.detail || 'Не удалось обновить цену');
     }
     return response.json();
   },

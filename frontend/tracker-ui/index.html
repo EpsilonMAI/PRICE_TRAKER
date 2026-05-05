@@ -27,7 +27,7 @@
                 <a href="/profile.html" class="text-gray-700 hover:text-blue-700 font-medium text-sm px-4 py-2.5 transition">
                     Профиль
                 </a>
-                <button x-show="products.length > 0" @click="openAddModal()" class="text-white bg-blue-700 hover:bg-blue-800 font-medium rounded-lg text-sm px-5 py-2.5">
+                <button x-show="products.length > 0 || hasActiveFilters()" @click="openAddModal()" class="text-white bg-blue-700 hover:bg-blue-800 font-medium rounded-lg text-sm px-5 py-2.5">
                     Добавить товар
                 </button>
             </div>
@@ -36,7 +36,84 @@
 
     <main class="w-full px-4 py-5 sm:px-6">
         
-        <h1 class="mb-5 text-3xl font-bold text-gray-900">Мои товары</h1>
+        <div class="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900">Мои товары</h1>
+                <p x-cloak
+                   x-show="!loading && !error && (products.length > 0 || hasActiveFilters())"
+                   class="mt-1 text-sm text-slate-500"
+                   x-text="getProductListSummary()"></p>
+            </div>
+        </div>
+
+        <section x-cloak
+                 x-show="!loading && !error && (products.length > 0 || hasActiveFilters())"
+                 class="mb-5 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div class="grid gap-3 md:grid-cols-[minmax(220px,1fr)_180px_180px_220px_auto] md:items-end">
+                <div>
+                    <label for="product-search" class="mb-1 block text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">Поиск</label>
+                    <div class="relative">
+                        <svg class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 100-15 7.5 7.5 0 000 15z"></path>
+                        </svg>
+                        <input id="product-search"
+                               type="search"
+                               x-model="filters.search"
+                               @input.debounce.350ms="loadProducts()"
+                               class="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 pl-10 pr-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-100"
+                               placeholder="Название товара">
+                    </div>
+                </div>
+
+                <div>
+                    <label for="store-filter" class="mb-1 block text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">Магазин</label>
+                    <select id="store-filter"
+                            x-model="filters.store"
+                            @change="loadProducts()"
+                            class="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-100">
+                        <option value="">Все магазины</option>
+                        <template x-for="store in availableStores" :key="store">
+                            <option :value="store" x-text="store"></option>
+                        </template>
+                    </select>
+                </div>
+
+                <div>
+                    <label for="active-filter" class="mb-1 block text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">Активность</label>
+                    <select id="active-filter"
+                            x-model="filters.isActive"
+                            @change="loadProducts()"
+                            class="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-100">
+                        <option value="all">Все статусы</option>
+                        <option value="active">Активные</option>
+                        <option value="paused">На паузе</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label for="product-sorting" class="mb-1 block text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">Сортировка</label>
+                    <select id="product-sorting"
+                            x-model="filters.ordering"
+                            @change="loadProducts()"
+                            class="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-100">
+                        <option value="-price_updated_at">Сначала обновленные</option>
+                        <option value="price_updated_at">Сначала старые</option>
+                        <option value="current_price">Цена по возрастанию</option>
+                        <option value="-current_price">Цена по убыванию</option>
+                    </select>
+                </div>
+
+                <button type="button"
+                        @click="resetProductFilters()"
+                        :disabled="!hasActiveFilters() && filters.ordering === '-price_updated_at'"
+                        class="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-600 transition hover:border-blue-200 hover:text-blue-700 disabled:cursor-not-allowed disabled:opacity-50">
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4 4v6h6M20 20v-6h-6M5 19A9 9 0 0119 5M19 5h-5M5 19h5"></path>
+                    </svg>
+                    Сбросить
+                </button>
+            </div>
+        </section>
 
         <!-- Индикатор загрузки -->
         <div x-cloak x-show="showLoader" class="text-center py-8">
@@ -50,7 +127,7 @@
         </div>
 
         <!-- Пустой список -->
-        <div x-cloak x-show="!loading && !error && products.length === 0" class="text-center py-16">
+        <div x-cloak x-show="!loading && !error && products.length === 0 && !hasActiveFilters()" class="text-center py-16">
             <svg class="mx-auto h-24 w-24 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
                       d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
@@ -63,6 +140,19 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                 </svg>
                 Добавить первый товар
+            </button>
+        </div>
+
+        <div x-cloak x-show="!loading && !error && products.length === 0 && hasActiveFilters()" class="rounded-2xl border border-dashed border-slate-200 bg-white px-6 py-12 text-center">
+            <svg class="mx-auto h-14 w-14 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M3 4h18l-7 8v5l-4 3v-8L3 4z"></path>
+            </svg>
+            <h3 class="mt-4 text-lg font-semibold text-slate-900">По этим условиям товаров нет</h3>
+            <p class="mt-2 text-sm text-slate-500">Измените фильтры или сбросьте их, чтобы вернуться к полному списку.</p>
+            <button type="button"
+                    @click="resetProductFilters()"
+                    class="mt-5 inline-flex items-center rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800">
+                Сбросить фильтры
             </button>
         </div>
 
@@ -83,7 +173,7 @@
                             <span @click.stop x-show="product.custom_name" x-text="product.custom_name"></span>
                         </div>
                         <div class="absolute right-0 top-0 pl-4">
-                            <span class="text-xs font-medium px-2 py-0.5 rounded-full border"
+                            <span class="max-w-28 truncate rounded-full border px-2 py-0.5 text-xs font-medium"
                                   :class="getStoreBadgeClass(product)"
                                   x-text="product.store_name"></span>
                         </div>
@@ -148,12 +238,76 @@
                                 Активное отслеживание
                             </label>
                         </div>
-                        <p class="ml-auto shrink-0 text-sm text-gray-400"
-                           x-show="product.price_updated_at"
-                           x-text="formatCardDateTime(product.price_updated_at)"></p>
+                        <div class="ml-auto flex shrink-0 items-center gap-2">
+                            <button type="button"
+                                    @click.stop="openDeleteConfirm(product)"
+                                    class="inline-flex h-8 w-8 items-center justify-center rounded-full border border-rose-100 text-rose-500 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700 focus:outline-none focus:ring-2 focus:ring-rose-200"
+                                    title="Удалить из отслеживания"
+                                    aria-label="Удалить из отслеживания">
+                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3m-8 0h10"></path>
+                                </svg>
+                            </button>
+                            <p class="text-sm text-gray-400"
+                               x-show="product.price_updated_at"
+                               x-text="formatCardDateTime(product.price_updated_at)"></p>
+                        </div>
                     </div>
                 </div>
             </template>
+        </div>
+
+        <!-- Подтверждение удаления -->
+        <div x-show="deleteModalOpen"
+             x-cloak
+             @click.self="closeDeleteConfirm()"
+             class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 px-4 py-8 backdrop-blur-sm">
+            <div class="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
+                <div class="flex items-start justify-between gap-4">
+                    <div>
+                        <p class="text-xs font-semibold uppercase tracking-[0.16em] text-rose-400">Удаление</p>
+                        <h3 class="mt-2 text-xl font-bold text-slate-950">Удалить товар из отслеживания?</h3>
+                    </div>
+                    <button type="button"
+                            @click="closeDeleteConfirm()"
+                            :disabled="deleteLoading"
+                            class="rounded-full p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 disabled:cursor-not-allowed disabled:opacity-60">
+                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+
+                <p class="mt-4 text-sm leading-6 text-slate-600">
+                    <span class="font-semibold text-slate-900" x-text="getProductTitle(productPendingDelete)"></span>
+                    будет удалён из списка вместе с историей цен.
+                </p>
+
+                <div x-show="deleteError" class="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+                    <p x-text="deleteError"></p>
+                </div>
+
+                <div class="mt-6 flex justify-end gap-3">
+                    <button type="button"
+                            @click="closeDeleteConfirm()"
+                            :disabled="deleteLoading"
+                            class="rounded-lg bg-slate-100 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-60">
+                        Отмена
+                    </button>
+                    <button type="button"
+                            @click="deleteProduct()"
+                            :disabled="deleteLoading"
+                            class="inline-flex items-center gap-2 rounded-lg bg-rose-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-60">
+                        <svg x-show="!deleteLoading" class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3m-8 0h10"></path>
+                        </svg>
+                        <svg x-show="deleteLoading" class="h-4 w-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v4m0 8v4m8-8h-4M8 12H4m11.314-5.314l-2.828 2.828M9.514 14.486l-2.828 2.828m0-10.828l2.828 2.828m5.657 5.657l2.828 2.828"></path>
+                        </svg>
+                        <span x-text="deleteLoading ? 'Удаление...' : 'Удалить'"></span>
+                    </button>
+                </div>
+            </div>
         </div>
 
         <div x-show="historyModalOpen"

@@ -3,6 +3,7 @@ from unittest.mock import patch
 from django.contrib.auth.models import User
 from django.core.management import call_command
 from django.test import TestCase
+from django.utils import timezone
 from rest_framework.test import APIClient
 
 from items.models import Categories, Products
@@ -142,6 +143,144 @@ class UpdatePriceHistoryCommandTests(TestCase):
         self.assertIsNone(tracking_item.last_success_at)
 
 
+class TrackingItemsListApiTests(TestCase):
+    def setUp(self) -> None:
+        self.client = APIClient()
+        self.user = User.objects.create_user(
+            username="list-user",
+            password="password123",
+        )
+        self.other_user = User.objects.create_user(
+            username="list-user-2",
+            password="password123",
+        )
+        self.category = Categories.objects.create(name="Электроника")
+        self.wb_store = Stores.objects.create(
+            name="Wildberries",
+            base_url="https://www.wildberries.ru",
+        )
+        self.ozon_store = Stores.objects.create(
+            name="Ozon",
+            base_url="https://www.ozon.ru",
+        )
+        self.client.force_authenticate(user=self.user)
+
+        self.phone = self._create_tracking_item(
+            name="iPhone 16",
+            store=self.wb_store,
+            price="95000.00",
+            collected_at=timezone.now() - timezone.timedelta(hours=1),
+            is_active=True,
+            custom_name="Основной телефон",
+        )
+        self.laptop = self._create_tracking_item(
+            name="MacBook Air",
+            store=self.ozon_store,
+            price="120000.00",
+            collected_at=timezone.now() - timezone.timedelta(days=2),
+            is_active=False,
+            custom_name="Рабочий ноутбук",
+        )
+        self.headphones = self._create_tracking_item(
+            name="AirPods Pro",
+            store=self.wb_store,
+            price="22000.00",
+            collected_at=timezone.now() - timezone.timedelta(days=1),
+            is_active=True,
+        )
+
+        other_product = Products.objects.create(
+            name="Чужой товар",
+            category=self.category,
+        )
+        other_item = TrackingItems.objects.create(
+            user=self.other_user,
+            product=other_product,
+            store=self.wb_store,
+        )
+        PriceHistory.objects.create(tracking_item=other_item, price="1.00")
+
+    def _create_tracking_item(
+        self,
+        *,
+        name: str,
+        store: Stores,
+        price: str,
+        collected_at,
+        is_active: bool,
+        custom_name: str = "",
+    ) -> TrackingItems:
+        product = Products.objects.create(
+            name=name,
+            category=self.category,
+        )
+        tracking_item = TrackingItems.objects.create(
+            user=self.user,
+            product=product,
+            store=store,
+            is_active=is_active,
+            custom_name=custom_name,
+        )
+        history = PriceHistory.objects.create(
+            tracking_item=tracking_item,
+            price=price,
+        )
+        PriceHistory.objects.filter(pk=history.pk).update(collected_at=collected_at)
+        return tracking_item
+
+    def _response_ids(self, response) -> list[int]:
+        return [item["id"] for item in response.data]
+
+    def test_list_filters_by_store_and_active_status(self) -> None:
+        response = self.client.get(
+            "/api/detailedprod/",
+            {"store": "Wildberries", "is_active": "true"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            set(self._response_ids(response)),
+            {self.phone.id, self.headphones.id},
+        )
+
+    def test_list_searches_product_and_custom_name(self) -> None:
+        product_response = self.client.get("/api/detailedprod/", {"search": "iphone"})
+        custom_name_response = self.client.get("/api/detailedprod/", {"search": "рабочий"})
+
+        self.assertEqual(product_response.status_code, 200)
+        self.assertEqual(self._response_ids(product_response), [self.phone.id])
+        self.assertEqual(custom_name_response.status_code, 200)
+        self.assertEqual(self._response_ids(custom_name_response), [self.laptop.id])
+
+    def test_list_sorts_by_latest_price_update_and_current_price(self) -> None:
+        updated_response = self.client.get(
+            "/api/detailedprod/",
+            {"ordering": "-price_updated_at"},
+        )
+        price_response = self.client.get(
+            "/api/detailedprod/",
+            {"ordering": "current_price"},
+        )
+
+        self.assertEqual(updated_response.status_code, 200)
+        self.assertEqual(
+            self._response_ids(updated_response),
+            [self.phone.id, self.headphones.id, self.laptop.id],
+        )
+        self.assertEqual(price_response.status_code, 200)
+        self.assertEqual(
+            self._response_ids(price_response),
+            [self.headphones.id, self.phone.id, self.laptop.id],
+        )
+
+    def test_list_rejects_invalid_query_params(self) -> None:
+        active_response = self.client.get("/api/detailedprod/", {"is_active": "maybe"})
+        ordering_response = self.client.get("/api/detailedprod/", {"ordering": "name"})
+
+        self.assertEqual(active_response.status_code, 400)
+        self.assertEqual(ordering_response.status_code, 400)
+
+
 class TrackingItemHistoryApiTests(TestCase):
     def setUp(self) -> None:
         self.client = APIClient()
@@ -229,6 +368,29 @@ class TrackingItemHistoryApiTests(TestCase):
         response = self.client.get(f"/api/tracking/{self.tracking_item.id}/")
 
         self.assertEqual(response.status_code, 404)
+
+    def test_tracking_item_delete_endpoint_removes_owned_item_and_history(self) -> None:
+        response = self.client.delete(f"/api/tracking/{self.tracking_item.id}/")
+
+        self.assertEqual(response.status_code, 204)
+        self.assertFalse(TrackingItems.objects.filter(id=self.tracking_item.id).exists())
+        self.assertEqual(PriceHistory.objects.filter(tracking_item_id=self.tracking_item.id).count(), 0)
+
+    def test_tracking_item_delete_endpoint_is_available_only_for_owner(self) -> None:
+        self.client.force_authenticate(user=self.other_user)
+        response = self.client.delete(f"/api/tracking/{self.tracking_item.id}/")
+
+        self.assertEqual(response.status_code, 404)
+        self.assertTrue(TrackingItems.objects.filter(id=self.tracking_item.id).exists())
+        self.assertEqual(PriceHistory.objects.filter(tracking_item_id=self.tracking_item.id).count(), 2)
+
+    def test_tracking_item_delete_endpoint_requires_authentication(self) -> None:
+        self.client.force_authenticate(user=None)
+        response = self.client.delete(f"/api/tracking/{self.tracking_item.id}/")
+
+        self.assertEqual(response.status_code, 401)
+        self.assertTrue(TrackingItems.objects.filter(id=self.tracking_item.id).exists())
+        self.assertEqual(PriceHistory.objects.filter(tracking_item_id=self.tracking_item.id).count(), 2)
 
     def test_manual_refresh_endpoint_updates_item_and_returns_serialized_item(self) -> None:
         offer = {
