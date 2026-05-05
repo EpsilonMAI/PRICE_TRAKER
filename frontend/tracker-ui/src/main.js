@@ -450,7 +450,10 @@ window.trackingApp = function() {
         },
 
         getSparklinePoints(product) {
-            return normalizeHistoryPoints(product.sparkline_points);
+            return aggregateHistoryPoints(
+                normalizeHistoryPoints(product.sparkline_points),
+                'day',
+            );
         },
 
         hasSparkline(product) {
