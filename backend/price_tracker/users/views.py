@@ -99,6 +99,12 @@ class SendTestNotificationView(APIView):
     """POST /api/profile/notifications/test/ — отправить тестовое письмо на email пользователя."""
 
     permission_classes = [IsAuthenticated]
+    NON_DELIVERY_BACKENDS = {
+        "django.core.mail.backends.console.EmailBackend",
+        "django.core.mail.backends.locmem.EmailBackend",
+        "django.core.mail.backends.filebased.EmailBackend",
+        "django.core.mail.backends.dummy.EmailBackend",
+    }
 
     def post(self, request: Request) -> Response:
         user = request.user
@@ -112,8 +118,20 @@ class SendTestNotificationView(APIView):
         from django.core.mail import send_mail
         from django.conf import settings as django_settings
 
+        if django_settings.EMAIL_BACKEND in self.NON_DELIVERY_BACKENDS:
+            return Response(
+                {
+                    "detail": (
+                        "Email backend настроен не на реальную SMTP-отправку: "
+                        f"{django_settings.EMAIL_BACKEND}. Проверьте EMAIL_BACKEND в env сервера."
+                    ),
+                    "email_backend": django_settings.EMAIL_BACKEND,
+                },
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+
         try:
-            send_mail(
+            sent_count = send_mail(
                 subject="✅ Тестовое уведомление PriceTracker",
                 message=(
                     f"Привет, {user.username}!\n\n"
@@ -131,7 +149,17 @@ class SendTestNotificationView(APIView):
                 status=status.HTTP_502_BAD_GATEWAY,
             )
 
-        return Response({"detail": f"Письмо отправлено на {email}"})
+        if sent_count < 1:
+            return Response(
+                {"detail": "SMTP backend не подтвердил отправку письма."},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+        return Response({
+            "detail": f"Письмо отправлено на {email}",
+            "email_backend": django_settings.EMAIL_BACKEND,
+            "from_email": django_settings.DEFAULT_FROM_EMAIL,
+        })
 
 
 class UpdateEmailView(APIView):
