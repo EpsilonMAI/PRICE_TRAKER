@@ -111,8 +111,8 @@
                                 </div>
 
                                 <template x-if="hasSparkline(product)">
-                                    <div class="relative aspect-[320/72] w-full overflow-hidden">
-                                        <svg :viewBox="`0 0 320 72`"
+                                    <div class="relative aspect-[320/88] w-full overflow-hidden">
+                                        <svg :viewBox="`0 0 320 88`"
                                              preserveAspectRatio="none"
                                              class="absolute inset-0 block h-full w-full">
                                              <path :d="buildSparklineAreaPath(product)"
@@ -128,7 +128,7 @@
                                 </template>
 
                                 <template x-if="!hasSparkline(product)">
-                                    <div class="flex aspect-[320/72] w-full items-center justify-center rounded-xl border border-dashed border-slate-200 bg-white text-center text-xs text-slate-400">
+                                    <div class="flex aspect-[320/88] w-full items-center justify-center rounded-xl border border-dashed border-slate-200 bg-white text-center text-xs text-slate-400">
                                         Недостаточно данных
                                     </div>
                                 </template>

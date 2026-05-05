@@ -9,8 +9,8 @@ window.addEventListener('load', () => {
 });
 
 const sparklineSize = {
-    width: 352,
-    height: 72,
+    width: 320,
+    height: 88,
     padding: { top: 6, right: 0, bottom: 6, left: 0 },
 };
 
