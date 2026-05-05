@@ -450,13 +450,7 @@ window.trackingApp = function() {
         },
 
         getSparklinePoints(product) {
-            const points = normalizeHistoryPoints(product.sparkline_points);
-
-            if (getDistinctDayCount(points) < 2) {
-                return points;
-            }
-
-            return aggregateHistoryPoints(points, 'day');
+            return normalizeHistoryPoints(product.sparkline_points);
         },
 
         hasSparkline(product) {

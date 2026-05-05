@@ -89,14 +89,28 @@ class TrackingItemSerializer(serializers.ModelSerializer):
         history_points = [
             point for point in obj.price_history.all()
             if point.price is not None and point.collected_at >= cutoff
-        ][:12]
+        ]
         history_points.reverse()
+
+        daily_points: dict[str, Dict[str, Any]] = {}
+        for point in history_points:
+            day_key = point.collected_at.date().isoformat()
+            bucket = daily_points.setdefault(
+                day_key,
+                {
+                    "prices": [],
+                    "collected_at": point.collected_at,
+                },
+            )
+            bucket["prices"].append(point.price)
+            bucket["collected_at"] = point.collected_at
+
         return [
             {
-                "price": point.price,
-                "collected_at": point.collected_at.isoformat(),
+                "price": sum(bucket["prices"]) / len(bucket["prices"]),
+                "collected_at": bucket["collected_at"].isoformat(),
             }
-            for point in history_points
+            for bucket in daily_points.values()
         ]
 
 
