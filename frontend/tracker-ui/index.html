@@ -148,23 +148,9 @@
                                 Активное отслеживание
                             </label>
                         </div>
-                        <div class="ml-auto flex items-center gap-3">
-                            <button type="button"
-                                    @click.stop="refreshProduct(product)"
-                                    :disabled="isRefreshingProduct(product.id)"
-                                    class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition hover:border-blue-300 hover:text-blue-600 disabled:cursor-not-allowed disabled:opacity-50"
-                                    title="Обновить цену сейчас">
-                                <svg x-show="!isRefreshingProduct(product.id)" class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h5M20 20v-5h-5M19 9a7 7 0 00-12-2m-2 8a7 7 0 0012 2"></path>
-                                </svg>
-                                <svg x-show="isRefreshingProduct(product.id)" class="h-4 w-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v4m0 8v4m8-8h-4M8 12H4m11.314-5.314l-2.828 2.828M9.514 14.486l-2.828 2.828m0-10.828l2.828 2.828m5.657 5.657l2.828 2.828"></path>
-                                </svg>
-                            </button>
-                            <p class="shrink-0 text-sm text-gray-400"
-                               x-show="product.price_updated_at"
-                               x-text="formatCardDateTime(product.price_updated_at)"></p>
-                        </div>
+                        <p class="ml-auto shrink-0 text-sm text-gray-400"
+                           x-show="product.price_updated_at"
+                           x-text="formatCardDateTime(product.price_updated_at)"></p>
                     </div>
                 </div>
             </template>

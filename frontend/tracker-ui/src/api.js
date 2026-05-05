@@ -116,20 +116,6 @@ export const api = {
     return response.json();
   },
 
-  async refreshProductPrice(productId) {
-    const response = await authenticatedFetch(`${API_BASE_URL}/tracking/${productId}/refresh/`, {
-      method: 'POST',
-    });
-    if (response.status === 401) return null;
-
-    const payload = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      throw new Error(payload.message || payload.detail || 'Не удалось обновить цену');
-    }
-
-    return payload;
-  },
-
   // Регистрация
   async register(userData) {
     const response = await fetch(`${API_BASE_URL}/register/`, {

@@ -252,7 +252,6 @@ window.trackingApp = function() {
         selectedProduct: null,
         selectedHistory: null,
         historyChart: null,
-        refreshingProductIds: [],
         wbUrl: '',
         wbLoading: false,
         wbResult: null,
@@ -362,43 +361,6 @@ window.trackingApp = function() {
                 console.error('Failed to toggle active status:', error);
                 product.is_active = !product.is_active;
                 this.error = 'Не удалось обновить статус отслеживания';
-            }
-        },
-
-        isRefreshingProduct(productId) {
-            return this.refreshingProductIds.includes(productId);
-        },
-
-        replaceProduct(updatedProduct) {
-            const index = this.products.findIndex((product) => product.id === updatedProduct.id);
-            if (index !== -1) {
-                this.products.splice(index, 1, updatedProduct);
-            }
-
-            if (this.selectedProduct?.id === updatedProduct.id) {
-                this.selectedProduct = updatedProduct;
-            }
-        },
-
-        async refreshProduct(product) {
-            if (this.isRefreshingProduct(product.id)) {
-                return;
-            }
-
-            this.error = null;
-            this.refreshingProductIds.push(product.id);
-
-            try {
-                const response = await api.refreshProductPrice(product.id);
-                this.replaceProduct(response.item);
-
-                if (this.historyModalOpen && this.selectedProduct?.id === product.id) {
-                    await this.loadHistory(product.id, this.historyPeriod);
-                }
-            } catch (error) {
-                this.error = error.message;
-            } finally {
-                this.refreshingProductIds = this.refreshingProductIds.filter((id) => id !== product.id);
             }
         },
 
