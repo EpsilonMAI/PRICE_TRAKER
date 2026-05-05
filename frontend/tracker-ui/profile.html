@@ -42,20 +42,10 @@
                         <p class="text-sm text-gray-500">Имя пользователя</p>
                         <p class="text-lg font-medium text-gray-900" x-text="user.username"></p>
                     </div>
-                    
-                    <div>
-                        <p class="text-sm text-gray-500">Email</p>
-                        <p class="text-lg font-medium text-gray-900" x-text="user.email"></p>
-                    </div>
-                    
-                    <div>
-                        <p class="text-sm text-gray-500">Дата регистрации</p>
-                        <p class="text-lg font-medium text-gray-900" x-text="formatDate(user.date_joined)"></p>
-                    </div>
 
-                    <!-- Email с редактированием -->
+                    <!-- Email с редактированием (используется и для уведомлений) -->
                     <div>
-                        <p class="text-sm text-gray-500 mb-1">Email для уведомлений</p>
+                        <p class="text-sm text-gray-500 mb-1">Email</p>
                         <div x-show="!editingEmail" class="flex items-center gap-2">
                             <p class="text-base font-medium text-gray-900"
                                x-text="user.email || 'не указан'"
@@ -77,6 +67,11 @@
                         </div>
                         <p x-show="emailSaved" x-transition class="text-green-600 text-xs mt-1">✓ Email сохранён</p>
                         <p x-show="emailError" x-transition class="text-red-600 text-xs mt-1" x-text="emailError"></p>
+                    </div>
+
+                    <div>
+                        <p class="text-sm text-gray-500">Дата регистрации</p>
+                        <p class="text-lg font-medium text-gray-900" x-text="formatDate(user.date_joined)"></p>
                     </div>
                 </div>
             </div>
