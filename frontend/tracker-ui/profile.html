@@ -52,6 +52,32 @@
                         <p class="text-sm text-gray-500">Дата регистрации</p>
                         <p class="text-lg font-medium text-gray-900" x-text="formatDate(user.date_joined)"></p>
                     </div>
+
+                    <!-- Email с редактированием -->
+                    <div>
+                        <p class="text-sm text-gray-500 mb-1">Email для уведомлений</p>
+                        <div x-show="!editingEmail" class="flex items-center gap-2">
+                            <p class="text-base font-medium text-gray-900"
+                               x-text="user.email || 'не указан'"
+                               :class="!user.email && 'text-gray-400 italic'"></p>
+                            <button @click="editingEmail = true; emailInput = user.email || ''"
+                                    class="text-blue-600 hover:text-blue-800 text-sm underline">Изменить</button>
+                        </div>
+                        <div x-show="editingEmail" class="flex items-center gap-2">
+                            <input type="email" x-model="emailInput"
+                                   @keydown.enter="saveEmail()" @keydown.escape="editingEmail = false"
+                                   class="border border-gray-300 rounded px-3 py-1.5 text-sm w-64 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                   placeholder="your@email.com">
+                            <button @click="saveEmail()" :disabled="emailSaving"
+                                    class="bg-blue-700 hover:bg-blue-800 disabled:opacity-60 text-white text-sm px-3 py-1.5 rounded transition">
+                                <span x-show="!emailSaving">Сохранить</span>
+                                <span x-show="emailSaving">Сохранение...</span>
+                            </button>
+                            <button @click="editingEmail = false" class="text-gray-500 hover:text-gray-700 text-sm">Отмена</button>
+                        </div>
+                        <p x-show="emailSaved" x-transition class="text-green-600 text-xs mt-1">✓ Email сохранён</p>
+                        <p x-show="emailError" x-transition class="text-red-600 text-xs mt-1" x-text="emailError"></p>
+                    </div>
                 </div>
             </div>
 
@@ -80,27 +106,48 @@
             <!-- Настройки уведомлений -->
             <div class="bg-white shadow-md rounded-lg p-6 md:col-span-2">
                 <h2 class="text-xl font-bold mb-4 text-gray-900">Настройки уведомлений</h2>
-                
+
                 <div class="space-y-3">
-                    <label class="flex items-center space-x-3">
-                        <input type="checkbox" class="w-5 h-5 text-blue-600 rounded" checked>
+                    <label class="flex items-center space-x-3 cursor-pointer">
+                        <input type="checkbox" class="w-5 h-5 text-blue-600 rounded"
+                               x-model="notifications.notify_price_drop">
                         <span class="text-gray-700">Email-уведомления о снижении цен</span>
                     </label>
-                    
-                    <label class="flex items-center space-x-3">
-                        <input type="checkbox" class="w-5 h-5 text-blue-600 rounded" checked>
+
+                    <label class="flex items-center space-x-3 cursor-pointer">
+                        <input type="checkbox" class="w-5 h-5 text-blue-600 rounded"
+                               x-model="notifications.notify_back_in_stock">
                         <span class="text-gray-700">Уведомления о появлении товара в наличии</span>
                     </label>
-                    
-                    <label class="flex items-center space-x-3">
-                        <input type="checkbox" class="w-5 h-5 text-blue-600 rounded">
+
+                    <label class="flex items-center space-x-3 cursor-pointer">
+                        <input type="checkbox" class="w-5 h-5 text-blue-600 rounded"
+                               x-model="notifications.notify_weekly_summary">
                         <span class="text-gray-700">Еженедельная сводка по ценам</span>
                     </label>
                 </div>
-                
-                <button class="mt-4 bg-blue-700 hover:bg-blue-800 text-white font-medium py-2 px-4 rounded">
-                    Сохранить настройки
-                </button>
+
+                <div class="mt-4 flex flex-wrap items-center gap-3">
+                    <button @click="saveNotifications()"
+                            :disabled="notifSaving"
+                            class="bg-blue-700 hover:bg-blue-800 disabled:opacity-60 text-white font-medium py-2 px-4 rounded transition">
+                        <span x-show="!notifSaving">Сохранить настройки</span>
+                        <span x-show="notifSaving">Сохранение...</span>
+                    </button>
+
+                    <button @click="sendTestNotification()"
+                            :disabled="testSending"
+                            class="bg-gray-100 hover:bg-gray-200 disabled:opacity-60 text-gray-700 font-medium py-2 px-4 rounded transition border border-gray-300">
+                        <span x-show="!testSending">✉️ Тестовое письмо</span>
+                        <span x-show="testSending">Отправка...</span>
+                    </button>
+
+                    <span x-show="notifSaved" x-transition class="text-green-600 text-sm font-medium">✓ Сохранено</span>
+                    <span x-show="testSent" x-transition class="text-green-600 text-sm font-medium">✓ Письмо отправлено</span>
+                    <span x-show="notifError || testError" x-transition class="text-red-600 text-sm">
+                        <span x-text="notifError || testError"></span>
+                    </span>
+                </div>
             </div>
         </div>
     </main>

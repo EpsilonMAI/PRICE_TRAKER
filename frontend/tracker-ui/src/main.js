@@ -1269,27 +1269,46 @@ window.profileApp = function() {
         stats: {},
         loading: true,
         error: null,
-        
+        notifications: {
+            notify_price_drop: true,
+            notify_back_in_stock: true,
+            notify_weekly_summary: false,
+        },
+        notifSaving: false,
+        notifSaved: false,
+        notifError: null,
+        testSending: false,
+        testSent: false,
+        testError: null,
+        editingEmail: false,
+        emailInput: '',
+        emailSaving: false,
+        emailSaved: false,
+        emailError: null,
+
         async loadProfile() {
-            // Проверить авторизацию
             if (!localStorage.getItem('access_token')) {
                 window.location.href = '/login.html';
                 return;
             }
-            
+
             try {
                 this.loading = true;
                 this.user = await api.getProfile();
-                // Статистика приходит с бэкенда
                 this.stats = {
                     tracking_count: this.user.tracking_count || 0,
                     active_count: this.user.active_count || 0,
-                    total_saved: 0  // Это поле можно будет добавить позже
+                    total_saved: 0,
+                };
+                // Загрузить текущие настройки уведомлений
+                this.notifications = {
+                    notify_price_drop: this.user.notify_price_drop ?? true,
+                    notify_back_in_stock: this.user.notify_back_in_stock ?? true,
+                    notify_weekly_summary: this.user.notify_weekly_summary ?? false,
                 };
             } catch (err) {
                 this.error = err.message;
                 if (err.message.includes('профиль')) {
-                    // Токен истёк, перенаправить на логин
                     localStorage.removeItem('access_token');
                     localStorage.removeItem('refresh_token');
                     window.location.href = '/login.html';
@@ -1298,21 +1317,69 @@ window.profileApp = function() {
                 this.loading = false;
             }
         },
-        
+
+        async saveNotifications() {
+            this.notifSaving = true;
+            this.notifSaved = false;
+            this.notifError = null;
+            try {
+                await api.updateNotificationSettings(this.notifications);
+                this.notifSaved = true;
+                setTimeout(() => { this.notifSaved = false; }, 3000);
+            } catch (err) {
+                this.notifError = err.message;
+            } finally {
+                this.notifSaving = false;
+            }
+        },
+
+        async sendTestNotification() {
+            this.testSending = true;
+            this.testSent = false;
+            this.testError = null;
+            this.notifError = null;
+            try {
+                const result = await api.sendTestNotification();
+                this.testSent = true;
+                setTimeout(() => { this.testSent = false; }, 4000);
+            } catch (err) {
+                this.testError = err.message;
+            } finally {
+                this.testSending = false;
+            }
+        },
+
+        async saveEmail() {
+            this.emailSaving = true;
+            this.emailSaved = false;
+            this.emailError = null;
+            try {
+                const result = await api.updateEmail(this.emailInput);
+                this.user.email = result.email;
+                this.editingEmail = false;
+                this.emailSaved = true;
+                setTimeout(() => { this.emailSaved = false; }, 3000);
+            } catch (err) {
+                this.emailError = err.message;
+            } finally {
+                this.emailSaving = false;
+            }
+        },
+
         logout() {
             localStorage.removeItem('access_token');
             localStorage.removeItem('refresh_token');
             window.location.href = '/login.html';
         },
-        
+
         formatDate(dateString) {
             if (!dateString) return '';
             return new Date(dateString).toLocaleDateString('ru-RU', {
                 year: 'numeric',
                 month: 'long',
-                day: 'numeric'
+                day: 'numeric',
             });
-        }
+        },
     }
 }
 

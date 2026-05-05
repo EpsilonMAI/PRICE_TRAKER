@@ -174,6 +174,28 @@ def refresh_tracking_item_price(tracking_item: TrackingItems) -> RefreshTracking
         raw_payload=offer,
     )
 
+    # --- Уведомления ---
+    new_price = offer.get("price")
+    in_stock_now = True
+    try:
+        from .notifications import notify_price_drop, notify_back_in_stock
+
+        prev_history = (
+            tracking_item.price_history.order_by("-collected_at")
+            .values("price", "in_stock")
+            .first()
+        )
+        prev_price = prev_history["price"] if prev_history else None
+        was_out_of_stock = prev_history and not prev_history["in_stock"]
+
+        if new_price and prev_price and new_price < prev_price:
+            notify_price_drop(tracking_item, prev_price, new_price)
+
+        if in_stock_now and was_out_of_stock:
+            notify_back_in_stock(tracking_item)
+    except Exception:
+        logger.exception("Ошибка при отправке уведомлений для TrackingItem(%s)", tracking_item.id)
+
     return _save_status(
         tracking_item,
         checked_at=checked_at,

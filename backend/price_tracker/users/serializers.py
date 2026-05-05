@@ -4,7 +4,7 @@ from typing import Dict, Any, Optional
 from rest_framework import serializers
 from django.contrib.auth.models import User
 from rest_framework_simplejwt.tokens import RefreshToken
-from .models import UserProfile
+from .models import UserProfile, CustomRules
 
 
 class RegisterSerializer(serializers.ModelSerializer):
@@ -52,14 +52,17 @@ class ProfileSerializer(serializers.ModelSerializer):
     avatar = serializers.SerializerMethodField()
     phone = serializers.SerializerMethodField()
     created_at = serializers.SerializerMethodField()
-    custom_rules = serializers.SerializerMethodField()
+    notify_price_drop = serializers.SerializerMethodField()
+    notify_back_in_stock = serializers.SerializerMethodField()
+    notify_weekly_summary = serializers.SerializerMethodField()
     tracking_count = serializers.SerializerMethodField()
     active_count = serializers.SerializerMethodField()
     
     class Meta:
         model = User
         fields = ('username', 'email', 'first_name', 'last_name', 'date_joined', 
-                  'avatar', 'phone', 'created_at', 'custom_rules', 
+                  'avatar', 'phone', 'created_at',
+                  'notify_price_drop', 'notify_back_in_stock', 'notify_weekly_summary',
                   'tracking_count', 'active_count')
 
     def get_avatar(self, obj: User) -> Optional[str]:
@@ -89,31 +92,33 @@ class ProfileSerializer(serializers.ModelSerializer):
         return None
     
     def get_created_at(self, obj: User) -> Optional[str]:
-        """Получить дату создания профиля.
-        
-        Args:
-            obj: Экземпляр пользователя
-            
-        Returns:
-            Optional[str]: Дата создания профиля или None
-        """
         if hasattr(obj, 'profile'):
             return obj.profile.created_at
         return None
-    
-    def get_custom_rules(self, obj: User) -> Optional[str]:
-        """Получить пользовательские правила отслеживания.
-        
-        Args:
-            obj: Экземпляр пользователя
-            
-        Returns:
-            Optional[str]: Текст правил или None
-        """
-        if hasattr(obj, 'profile') and obj.profile.custom_rules:
-            return obj.profile.custom_rules.custom_rule
-        return None
-    
+
+    def _get_rules(self, obj: User):
+        """Получить или создать CustomRules для профиля пользователя."""
+        if not hasattr(obj, 'profile'):
+            return None
+        rules = obj.profile.custom_rules
+        if rules is None:
+            rules = CustomRules.objects.create()
+            obj.profile.custom_rules = rules
+            obj.profile.save(update_fields=["custom_rules"])
+        return rules
+
+    def get_notify_price_drop(self, obj: User) -> bool:
+        rules = self._get_rules(obj)
+        return rules.notify_price_drop if rules else True
+
+    def get_notify_back_in_stock(self, obj: User) -> bool:
+        rules = self._get_rules(obj)
+        return rules.notify_back_in_stock if rules else True
+
+    def get_notify_weekly_summary(self, obj: User) -> bool:
+        rules = self._get_rules(obj)
+        return rules.notify_weekly_summary if rules else False
+
     def get_tracking_count(self, obj: User) -> int:
         """Получить общее количество отслеживаемых товаров.
         
@@ -135,4 +140,11 @@ class ProfileSerializer(serializers.ModelSerializer):
             int: Количество активных товаров
         """
         return obj.tracking_items.filter(is_active=True).count()
-        
+
+
+class NotificationSettingsSerializer(serializers.Serializer):
+    """Сериализатор для обновления настроек уведомлений."""
+
+    notify_price_drop = serializers.BooleanField()
+    notify_back_in_stock = serializers.BooleanField()
+    notify_weekly_summary = serializers.BooleanField()

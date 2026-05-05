@@ -7,24 +7,40 @@ from django.conf import settings
 
 
 class CustomRules(models.Model):
-    """Модель пользовательских правил отслеживания цен.
-    
+    """Настройки email-уведомлений пользователя.
+
     Attributes:
-        custom_rule: Текстовое описание правила отслеживания
+        notify_price_drop: Отправлять письмо при снижении цены
+        notify_back_in_stock: Отправлять письмо при появлении товара в наличии
+        notify_weekly_summary: Еженедельная сводка по всем отслеживаемым товарам
     """
-    custom_rule = models.CharField(max_length=255)
-    
+
+    notify_price_drop = models.BooleanField(
+        default=True,
+        verbose_name="Уведомлять о снижении цены",
+    )
+    notify_back_in_stock = models.BooleanField(
+        default=True,
+        verbose_name="Уведомлять о появлении в наличии",
+    )
+    notify_weekly_summary = models.BooleanField(
+        default=False,
+        verbose_name="Еженедельная сводка",
+    )
+
     class Meta:
         verbose_name = "Custom Rule"
         verbose_name_plural = "Custom Rules"
-    
+
     def __str__(self) -> str:
-        """Строковое представление правила.
-        
-        Returns:
-            str: Текст правила
-        """
-        return self.custom_rule
+        parts = []
+        if self.notify_price_drop:
+            parts.append("снижение цены")
+        if self.notify_back_in_stock:
+            parts.append("в наличии")
+        if self.notify_weekly_summary:
+            parts.append("сводка")
+        return ", ".join(parts) if parts else "нет уведомлений"
 
 
 class UserProfile(models.Model):

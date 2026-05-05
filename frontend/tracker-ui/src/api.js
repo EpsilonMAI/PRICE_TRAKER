@@ -155,6 +155,39 @@ export const api = {
     return response.json();
   },
 
+  // Сохранить настройки уведомлений
+  async updateNotificationSettings(settings) {
+    const response = await authenticatedFetch(`${API_BASE_URL}/profile/notifications/`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(settings),
+    });
+    if (!response.ok) throw new Error('Не удалось сохранить настройки');
+    return response.json();
+  },
+
+  // Отправить тестовое письмо
+  async sendTestNotification() {
+    const response = await authenticatedFetch(`${API_BASE_URL}/profile/notifications/test/`, {
+      method: 'POST',
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.detail || 'Ошибка отправки');
+    return data;
+  },
+
+  // Обновить email
+  async updateEmail(email) {
+    const response = await authenticatedFetch(`${API_BASE_URL}/profile/email/`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.detail || 'Ошибка сохранения email');
+    return data;
+  },
+
   // Добавить товар в отслеживание
   async addProduct(productData) {
     const response = await authenticatedFetch(`${API_BASE_URL}/additem/`, {

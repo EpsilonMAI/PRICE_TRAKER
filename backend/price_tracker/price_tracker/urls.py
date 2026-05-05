@@ -23,7 +23,7 @@ from rest_framework_simplejwt.views import (
     TokenRefreshView,
     TokenVerifyView
 )
-from users.views import UserRegistration, GetProfile
+from users.views import UserRegistration, GetProfile, UpdateNotificationSettings, SendTestNotificationView, UpdateEmailView
 from stores.views import WBParserView, WBParserByURLView
 
 
@@ -39,6 +39,9 @@ urlpatterns = [
     path('api/token/verify/', TokenVerifyView.as_view(), name='token_verify'),
     path('api/register/', UserRegistration.as_view()),
     path('api/profile/', GetProfile.as_view()),
+    path('api/profile/notifications/', UpdateNotificationSettings.as_view()),
+    path('api/profile/notifications/test/', SendTestNotificationView.as_view()),
+    path('api/profile/email/', UpdateEmailView.as_view()),
     path('api/additem/', AddItemToTrackAPIView.as_view()),
     path('api/tracking/<int:pk>/history/', TrackingItemHistoryAPIView.as_view()),
     path('api/tracking/<int:pk>/refresh/', RefreshTrackingItemAPIView.as_view()),

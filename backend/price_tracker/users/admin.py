@@ -15,6 +15,6 @@ class UserProfileAdmin(admin.ModelAdmin):
 
 @admin.register(CustomRules)
 class CustomRulesAdmin(admin.ModelAdmin):
-    """Административная панель для пользовательских правил."""
-    list_display = ('custom_rule',)
-    search_fields = ('custom_rule',)
+    """Административная панель для настроек уведомлений."""
+    list_display = ('notify_price_drop', 'notify_back_in_stock', 'notify_weekly_summary')
+    list_filter = ('notify_price_drop', 'notify_back_in_stock', 'notify_weekly_summary')
